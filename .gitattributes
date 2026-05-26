@@ -1,0 +1,8 @@
+# Force binary files to not be translated or treated as text
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.webp -text
+**/gradle-wrapper.jar binary

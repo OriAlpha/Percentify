@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -159,31 +161,35 @@ fun EditWidgetDialogScreen(
 
     // Material 3 Dialog styled overlay
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(28.dp),
-            color = Color(0xFF1C1B1F), // Immersive Dark background
-            border = BorderStroke(1.dp, Color(0x0CFFFFFF)), // custom border border-white/5
-            tonalElevation = 6.dp
-        ) {
-            if (!isLoaded) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color(colorState.composeColor))
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+        BoxWithConstraints {
+            val maxDialogHeight = maxHeight * 0.9f
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = maxDialogHeight),
+                shape = RoundedCornerShape(28.dp),
+                color = Color(0xFF1C1B1F), // Immersive Dark background
+                border = BorderStroke(1.dp, Color(0x0CFFFFFF)), // custom border border-white/5
+                tonalElevation = 6.dp
+            ) {
+                if (!isLoaded) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(colorState.composeColor))
+                    }
+                } else {
+                    val scrollState = rememberScrollState()
+                    Column(
+                        modifier = Modifier
+                            .padding(24.dp)
+                            .fillMaxWidth()
+                            .verticalScroll(scrollState),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                     // Header Area
                     Column {
                         Text(
@@ -547,4 +553,5 @@ fun EditWidgetDialogScreen(
             }
         }
     }
+}
 }
