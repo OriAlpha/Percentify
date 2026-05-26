@@ -75,8 +75,14 @@ jobs:
           APK_DIR=$(dirname "$FOUND_APK")
           APK_PATH="$APK_DIR/Percentify.apk"
           mv "$FOUND_APK" "$APK_PATH"
+          
+          # Store a copy in .build-outputs directory
+          mkdir -p .build-outputs
+          cp "$APK_PATH" .build-outputs/Percentify.apk
+          
           echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
           echo "🎉 Successfully renamed and located APK at: $APK_PATH"
+          echo "🎉 Also stored a copy in .build-outputs/Percentify.apk"
 
       - name: Upload Installer APK to GitHub Artifacts
         uses: actions/upload-artifact@v4

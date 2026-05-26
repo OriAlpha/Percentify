@@ -27,6 +27,11 @@ class ExampleRobolectricTest {
     }
 
     @Test
+    fun testMainActivityLaunchesWithoutCrashing() {
+        org.robolectric.Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    }
+
+    @Test
     fun testDashboardLaunchesAndHasAppTitle() {
         composeTestRule.setContent {
             MyApplicationTheme {

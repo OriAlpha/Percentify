@@ -122,3 +122,16 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
   "ksp"(libs.moshi.kotlin.codegen)
 }
+
+// Automatically copy the build output APK to the root .build-outputs folder on local builds
+tasks.register<Copy>("copyApkToBuildOutputs") {
+    from(layout.buildDirectory.dir("outputs/apk/debug"))
+    include("*.apk")
+    into(rootProject.file(".build-outputs"))
+    rename { "Percentify.apk" }
+}
+
+tasks.matching { it.name == "assembleDebug" }.configureEach {
+    finalizedBy("copyApkToBuildOutputs")
+}
+
