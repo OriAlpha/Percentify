@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Outer Progress Circular Loop with round caps (Emerald colored accent) -->
+    <path
+        android:pathData="M 54,18 A 36,36 0 1,1 18,54"
+        android:strokeColor="#10B981"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+        
+    <!-- Background Low-Alpha Ring -->
+    <path
+        android:pathData="M 18,54 A 36,36 0 0,1 54,18"
+        android:strokeColor="#334155"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000" />
+
+    <!-- Center Styled Percentage Icon (%) -->
+    <!-- Slanted diagonal bar -->
+    <path
+        android:pathData="M 64,44 L 44,64"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round" />
+
+    <!-- Top-left percent dot circle -->
+    <path
+        android:pathData="M 46,44 A 4,4 0 1,1 45.9,44"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Bottom-right percent dot circle -->
+    <path
+        android:pathData="M 62,60 A 4,4 0 1,1 61.9,60"
+        android:fillColor="#FFFFFF" />
+        
+</vector>

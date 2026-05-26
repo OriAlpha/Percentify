@@ -1,0 +1,6 @@
+{
+  "name": "Percentify",
+  "description": "Customizable Material 3 home screen widgets to track your goals, water intake, savings, or any progress from 0% to 100%.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
