@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -160,8 +161,24 @@ fun EditWidgetDialogScreen(
     }
 
     // Material 3 Dialog styled overlay
-    Dialog(onDismissRequest = onDismiss) {
-        BoxWithConstraints {
+    val interactionSource = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) { onDismiss() } // Tap outside dismissal
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null
+                ) { /* Prevent click propagation to background */ }
+        ) {
             val maxDialogHeight = maxHeight * 0.9f
             Surface(
                 modifier = Modifier
