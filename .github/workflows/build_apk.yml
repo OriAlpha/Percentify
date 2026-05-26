@@ -45,6 +45,9 @@ jobs:
             touch .env
           fi
 
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
       - name: Build Debug Application (APK)
         run: ./gradlew assembleDebug
 
