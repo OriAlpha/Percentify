@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -133,6 +135,15 @@ fun EditWidgetDialogScreen(
     var bgPathState by remember { mutableStateOf<String?>(null) }
     var isLoaded by remember { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) }
+
+    val haptic = LocalHapticFeedback.current
+    var lastHapticValue by remember { mutableIntStateOf(50) }
+
+    LaunchedEffect(isLoaded) {
+        if (isLoaded) {
+            lastHapticValue = valueState.toInt()
+        }
+    }
 
     // Load existing settings if valid widget instance
     LaunchedEffect(appWidgetId) {
@@ -288,7 +299,14 @@ fun EditWidgetDialogScreen(
                         // Interactive slider to adjust value
                         Slider(
                             value = valueState,
-                            onValueChange = { valueState = it },
+                            onValueChange = { newValue ->
+                                valueState = newValue
+                                val currentIntValue = newValue.toInt()
+                                if (currentIntValue != lastHapticValue) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    lastHapticValue = currentIntValue
+                                }
+                            },
                             valueRange = 0f..100f,
                             colors = SliderDefaults.colors(
                                 thumbColor = Color(colorState.composeColor),

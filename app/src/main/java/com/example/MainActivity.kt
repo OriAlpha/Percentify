@@ -39,6 +39,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -94,6 +96,8 @@ class MainActivity : ComponentActivity() {
 fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
     var label by remember { mutableStateOf("Water tracker") }
     var value by remember { mutableFloatStateOf(70f) }
+    val haptic = LocalHapticFeedback.current
+    var lastHapticValue by remember { mutableIntStateOf(70) }
     var style by remember { mutableStateOf(WidgetStyle.CIRCLE) }
     var selectedColor by remember { mutableStateOf(WidgetColor.EMERALD) }
     var bgPath by remember { mutableStateOf<String?>(null) }
@@ -521,7 +525,14 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
 
                     Slider(
                         value = value,
-                        onValueChange = { value = it },
+                        onValueChange = { newValue ->
+                            value = newValue
+                            val currentIntValue = newValue.toInt()
+                            if (currentIntValue != lastHapticValue) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                lastHapticValue = currentIntValue
+                            }
+                        },
                         valueRange = 0f..100f,
                         colors = SliderDefaults.colors(
                             thumbColor = Color(selectedColor.composeColor),
