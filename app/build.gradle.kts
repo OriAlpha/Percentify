@@ -123,44 +123,12 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
 }
 
-// Custom configuration-cache compliant task for renaming Compiled APK
-abstract class RenameApkTask : DefaultTask() {
-    @get:Internal
-    abstract val buildDir: DirectoryProperty
-
-    @TaskAction
-    fun rename() {
-        val dir = buildDir.get().asFile
-        val srcFile = File(dir, "app-debug.apk")
-        val destFile = File(dir, "percentify.apk")
-        if (srcFile.exists()) {
-            if (destFile.exists()) {
-                destFile.delete()
-            }
-            val success = srcFile.renameTo(destFile)
-            if (success) {
-                println("Successfully renamed app-debug.apk to percentify.apk")
-            } else {
-                println("Failed to rename app-debug.apk to percentify.apk")
-            }
-        }
-    }
-}
-
-val renameDebugApk = tasks.register<RenameApkTask>("renameDebugApk") {
-    buildDir.set(layout.buildDirectory.dir("outputs/apk/debug"))
-}
-
-tasks.matching { it.name == "packageDebug" }.configureEach {
-    finalizedBy(renameDebugApk)
-}
-
 // Automatically copy the build output APK to the root .build-outputs folder on local builds
 tasks.register<Copy>("copyApkToBuildOutputs") {
-    dependsOn(renameDebugApk)
     from(layout.buildDirectory.dir("outputs/apk/debug"))
-    include("*.apk")
-    into(rootProject.file(".build-outputs"))
+    include("app-debug.apk")
+    into(layout.projectDirectory.dir("../.build-outputs"))
+    rename { "percentify.apk" }
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {
