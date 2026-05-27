@@ -123,15 +123,51 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
 }
 
-// Automatically copy the build output APK to the root .build-outputs folder on local builds
-tasks.register<Copy>("copyApkToBuildOutputs") {
-    from(layout.buildDirectory.dir("outputs/apk/debug"))
-    include("app-debug.apk")
-    into(layout.projectDirectory.dir("../.build-outputs"))
-    rename { "percentify.apk" }
+// Automatically copy the build output APK to the root .build-outputs folder and ensure only percentify.apk exists
+abstract class PreparePercentifyApkTask : DefaultTask() {
+    @get:InputDirectory
+    abstract val inputDir: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun execute() {
+        val srcFile = inputDir.file("app-debug.apk").get().asFile
+        val destFile = outputDir.file("percentify.apk").get().asFile
+
+        if (srcFile.exists()) {
+            if (destFile.exists()) {
+                destFile.delete()
+            }
+            srcFile.copyTo(destFile, overwrite = true)
+            println("Successfully copied APK to ${destFile.absolutePath}")
+
+            // Delete original app-debug.apk from the build dir so the platform doesn't copy it
+            if (srcFile.delete()) {
+                println("Cleaned up original app-debug.apk from build directory.")
+            } else {
+                println("Warning: Couldn't delete original app-debug.apk")
+            }
+        } else {
+            println("Warning: app-debug.apk not found at ${srcFile.absolutePath}")
+        }
+
+        // Also clean up any lingering app-debug.apk inside the output directory
+        val destAppDebug = outputDir.file("app-debug.apk").get().asFile
+        if (destAppDebug.exists()) {
+            destAppDebug.delete()
+            println("Cleaned up app-debug.apk in destination.")
+        }
+    }
+}
+
+val preparePercentifyApk = tasks.register<PreparePercentifyApkTask>("preparePercentifyApk") {
+    inputDir.set(layout.buildDirectory.dir("outputs/apk/debug"))
+    outputDir.set(layout.projectDirectory.dir("../.build-outputs"))
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {
-    finalizedBy("copyApkToBuildOutputs")
+    finalizedBy(preparePercentifyApk)
 }
 
