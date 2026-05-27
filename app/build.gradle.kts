@@ -135,27 +135,14 @@ tasks.register("copyApkToBuildOutputs") {
 
     doLast {
         val appDebugApk = File(debugOutDirFile, "app-debug.apk")
-        val percentifyApk = File(debugOutDirFile, "percentify.apk")
         
-        // If app-debug.apk exists, rename it to percentify.apk
-        if (appDebugApk.exists()) {
-            if (percentifyApk.exists()) {
-                percentifyApk.delete()
-            }
-            appDebugApk.renameTo(percentifyApk)
-        }
-        
-        // Copy percentify.apk to .build-outputs
         targetDirFile.mkdirs()
-        val finalApk = File(targetDirFile, "percentify.apk")
-        if (percentifyApk.exists()) {
-            percentifyApk.copyTo(finalApk, overwrite = true)
-        }
-        
-        // Delete any generic app-debug.apk from .build-outputs
-        val oldApk = File(targetDirFile, "app-debug.apk")
-        if (oldApk.exists()) {
-            oldApk.delete()
+        if (appDebugApk.exists()) {
+            val finalPercentifyApk = File(targetDirFile, "percentify.apk")
+            val finalAppDebugApk = File(targetDirFile, "app-debug.apk")
+            
+            appDebugApk.copyTo(finalPercentifyApk, overwrite = true)
+            appDebugApk.copyTo(finalAppDebugApk, overwrite = true)
         }
     }
 }
