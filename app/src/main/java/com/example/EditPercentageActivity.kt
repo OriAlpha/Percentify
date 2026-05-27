@@ -287,65 +287,20 @@ fun EditWidgetDialogScreen(
                         }
 
                         // Interactive circular gesture progress wheel / dial
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(210.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(140.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularWheelSlider(
-                                    value = valueState,
-                                    onValueChange = { valueState = it },
-                                    accentColor = Color(colorState.composeColor),
-                                    wheelStyle = wheelStyleState,
-                                    onWheelStyleChange = { wheelStyleState = it },
-                                    modifier = Modifier.size(130.dp)
-                                )
-                            }
-
-                            // Material 3 Interactive Design Style Segmented Control
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(24.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .padding(4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                WheelStyle.entries.forEach { styleOpt ->
-                                    val isSelected = wheelStyleState == styleOpt
-                                    val name = when (styleOpt) {
-                                        WheelStyle.SLEEK_ARC -> "Sleek Arc"
-                                        WheelStyle.SEGMENTED_DIAL -> "Gear Dial"
-                                        WheelStyle.NEON_HALO -> "Neon Halo"
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(20.dp))
-                                            .background(if (isSelected) Color(colorState.composeColor) else Color.Transparent)
-                                            .clickable { wheelStyleState = styleOpt }
-                                            .padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = name,
-                                            style = MaterialTheme.typography.labelLarge.copy(
-                                                color = if (isSelected) {
-                                                    if (colorState == WidgetColor.AMBER) Color.Black else Color.White
-                                                } else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp
-                                            )
-                                        )
-                                    }
-                                }
-                            }
+                            CircularWheelSlider(
+                                value = valueState,
+                                onValueChange = { valueState = it },
+                                accentColor = Color(colorState.composeColor),
+                                wheelStyle = wheelStyleState,
+                                onWheelStyleChange = { wheelStyleState = it },
+                                modifier = Modifier.size(190.dp)
+                            )
                         }
                     }
 

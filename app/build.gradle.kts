@@ -128,7 +128,7 @@ tasks.register<Copy>("copyApkToBuildOutputs") {
     from(layout.buildDirectory.dir("outputs/apk/debug"))
     include("*.apk")
     into(rootProject.file(".build-outputs"))
-    rename { "Percentify.apk" }
+    rename { "percentify.apk" }
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {

@@ -543,7 +543,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp),
+                            .height(210.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularWheelSlider(
@@ -552,47 +552,8 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                             accentColor = Color(selectedColor.composeColor),
                             wheelStyle = wheelStyle,
                             onWheelStyleChange = { wheelStyle = it },
-                            modifier = Modifier.size(135.dp)
+                            modifier = Modifier.size(190.dp)
                         )
-                    }
-
-                    // Material 3 Interactive Design Style Segmented Control
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        WheelStyle.entries.forEach { styleOpt ->
-                            val isSelected = wheelStyle == styleOpt
-                            val name = when (styleOpt) {
-                                WheelStyle.SLEEK_ARC -> "Sleek Arc"
-                                WheelStyle.SEGMENTED_DIAL -> "Gear Dial"
-                                WheelStyle.NEON_HALO -> "Neon Halo"
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(if (isSelected) Color(selectedColor.composeColor) else Color.Transparent)
-                                    .clickable { wheelStyle = styleOpt }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = name,
-                                    style = MaterialTheme.typography.labelLarge.copy(
-                                        color = if (isSelected) {
-                                            if (selectedColor == WidgetColor.AMBER) Color.Black else Color.White
-                                        } else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
-                                )
-                            }
-                        }
                     }
                 }
 
