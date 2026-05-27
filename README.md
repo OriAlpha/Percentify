@@ -6,7 +6,7 @@ A beautiful, Material 3-compliant interactive progress and percentage tracker fo
 
 ## 🎨 Core Features
 
-- **Progress/Level Visualizers**: Choose from multiple styles including Classic Circle, Ambient Glow, Corner Ring, Thin Hollow, Solid Accent, Bar Progress, and Minimal Text.
+- **Progress/Level Visualizers**: Choose from multiple styles including Classic Circle, Ambient Glow, Corner Ring, Solid Accent, Bar Progress, and Minimal Text.
 - **Clock-Style Circular Dial**: Set your values instantly on the update screen using an innovative, highly intuitive rotary gesture progress wheel.
 - **Custom Adaptive Imagery**: Personalize individual widgets with your own photos, complete with smooth rounded background clipping (`18.dp`) and a high-contrast protective translucent scrim.
 - **Accented Themes**: Choose from vibrant system theme accents (Emerald, Amber, Violet, Rose, Sunset, Ocean, Space) to customize individual widgets.

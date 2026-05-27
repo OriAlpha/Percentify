@@ -58,6 +58,8 @@ android {
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
 
+
+
 // Configure the Secrets Gradle Plugin to use .env and .env.example files
 // to match the convention used in Web projects.
 secrets {
@@ -124,11 +126,38 @@ dependencies {
 }
 
 // Automatically copy the build output APK to the root .build-outputs folder on local builds
-tasks.register<Copy>("copyApkToBuildOutputs") {
-    from(layout.buildDirectory.dir("outputs/apk/debug"))
-    include("*.apk")
-    into(rootProject.file(".build-outputs"))
-    rename { "percentify.apk" }
+val debugOutDirProvider = layout.buildDirectory.dir("outputs/apk/debug")
+val rootDirFile = rootProject.layout.projectDirectory.asFile
+
+tasks.register("copyApkToBuildOutputs") {
+    val debugOutDirFile = debugOutDirProvider.get().asFile
+    val targetDirFile = File(rootDirFile, ".build-outputs")
+
+    doLast {
+        val appDebugApk = File(debugOutDirFile, "app-debug.apk")
+        val percentifyApk = File(debugOutDirFile, "percentify.apk")
+        
+        // If app-debug.apk exists, rename it to percentify.apk
+        if (appDebugApk.exists()) {
+            if (percentifyApk.exists()) {
+                percentifyApk.delete()
+            }
+            appDebugApk.renameTo(percentifyApk)
+        }
+        
+        // Copy percentify.apk to .build-outputs
+        targetDirFile.mkdirs()
+        val finalApk = File(targetDirFile, "percentify.apk")
+        if (percentifyApk.exists()) {
+            percentifyApk.copyTo(finalApk, overwrite = true)
+        }
+        
+        // Delete any generic app-debug.apk from .build-outputs
+        val oldApk = File(targetDirFile, "app-debug.apk")
+        if (oldApk.exists()) {
+            oldApk.delete()
+        }
+    }
 }
 
 tasks.matching { it.name == "assembleDebug" }.configureEach {

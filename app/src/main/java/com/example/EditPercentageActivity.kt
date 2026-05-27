@@ -131,7 +131,6 @@ fun EditWidgetDialogScreen(
     var styleState by remember { mutableStateOf(WidgetStyle.CIRCLE) }
     var colorState by remember { mutableStateOf(WidgetColor.EMERALD) }
     var bgPathState by remember { mutableStateOf<String?>(null) }
-    var wheelStyleState by remember { mutableStateOf(WheelStyle.SLEEK_ARC) }
     var isLoaded by remember { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) }
 
@@ -146,7 +145,7 @@ fun EditWidgetDialogScreen(
                 prefs[WidgetStateKeys.LABEL]?.let { labelState = it }
                 prefs[WidgetStateKeys.VALUE]?.let { valueState = it.toFloat() }
                 prefs[WidgetStateKeys.STYLE]?.let {
-                    styleState = WidgetStyle.valueOf(it)
+                    styleState = try { WidgetStyle.valueOf(it) } catch (e: Exception) { WidgetStyle.CIRCLE }
                 }
                 prefs[WidgetStateKeys.COLOR]?.let {
                     colorState = WidgetColor.fromName(it)
@@ -286,22 +285,18 @@ fun EditWidgetDialogScreen(
                             )
                         }
 
-                        // Interactive circular gesture progress wheel / dial
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(210.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularWheelSlider(
-                                value = valueState,
-                                onValueChange = { valueState = it },
-                                accentColor = Color(colorState.composeColor),
-                                wheelStyle = wheelStyleState,
-                                onWheelStyleChange = { wheelStyleState = it },
-                                modifier = Modifier.size(190.dp)
-                            )
-                        }
+                        // Interactive slider to adjust value
+                        Slider(
+                            value = valueState,
+                            onValueChange = { valueState = it },
+                            valueRange = 0f..100f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(colorState.composeColor),
+                                activeTrackColor = Color(colorState.composeColor),
+                                inactiveTrackColor = Color(0xFF49454F)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
 
                     // 2. Toggle Advanced Design Customizer if modifying an existing widget
@@ -394,7 +389,6 @@ fun EditWidgetDialogScreen(
                                                     WidgetStyle.GLOW -> "Glow Ambient"
                                                     WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
                                                     WidgetStyle.SOLID_FILL -> "Solid Accent"
-                                                    WidgetStyle.HOLLOW_RING -> "Thin Hollow"
                                                     WidgetStyle.LINEAR -> "Bar Progress"
                                                     WidgetStyle.MINIMAL -> "Minimal %"
                                                 }
