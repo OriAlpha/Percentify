@@ -102,6 +102,7 @@ fun WidgetContent(
             val baseAlphaFactor = 0.15f + (value / 100f) * 0.40f
             ColorProvider(Color(widgetColor.composeColor).copy(alpha = baseAlphaFactor))
         }
+        WidgetStyle.HOLLOW_RING -> ColorProvider(Color(0x1E000000)) // Hollow floating card background
         else -> {
             if (bgBitmap != null) ColorProvider(Color.Transparent)
             else ColorProvider(Color(0xFF1C1B1F)) // Elegant custom background
@@ -333,6 +334,18 @@ fun WidgetContent(
                         )
                     }
                 }
+            }
+            WidgetStyle.HOLLOW_RING -> {
+                val ringBitmap = WidgetBitmapRenderer.drawElegantRing(
+                    percentage = value,
+                    hexColor = widgetColor.hex,
+                    label = label
+                )
+                Image(
+                    provider = ImageProvider(ringBitmap),
+                    contentDescription = "Elegant Thin Ring Tracker $value%",
+                    modifier = GlanceModifier.fillMaxSize()
+                )
             }
         }
         }

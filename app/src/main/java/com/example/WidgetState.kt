@@ -9,7 +9,8 @@ enum class WidgetStyle {
     MINIMAL,
     GLOW,
     CORNER_CIRCLE,
-    SOLID_FILL
+    SOLID_FILL,
+    HOLLOW_RING
 }
 
 enum class WidgetColor(val label: String, val hex: String, val composeColor: Long) {

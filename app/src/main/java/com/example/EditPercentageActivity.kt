@@ -42,12 +42,6 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.style.TextAlign
 import com.example.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
@@ -137,6 +131,7 @@ fun EditWidgetDialogScreen(
     var styleState by remember { mutableStateOf(WidgetStyle.CIRCLE) }
     var colorState by remember { mutableStateOf(WidgetColor.EMERALD) }
     var bgPathState by remember { mutableStateOf<String?>(null) }
+    var wheelStyleState by remember { mutableStateOf(WheelStyle.SLEEK_ARC) }
     var isLoaded by remember { mutableStateOf(false) }
     var showAdvanced by remember { mutableStateOf(appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) }
 
@@ -291,34 +286,22 @@ fun EditWidgetDialogScreen(
                             )
                         }
 
-                        // Beautiful Live Preview box showing EXACTLY how the widget looks with selected configuration
+                        // Interactive circular gesture progress wheel / dial
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(180.dp),
+                                .height(210.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            WidgetPreviewBlock(
-                                label = labelState,
+                            CircularWheelSlider(
                                 value = valueState,
-                                style = styleState,
-                                color = colorState,
-                                bgPath = bgPathState
+                                onValueChange = { valueState = it },
+                                accentColor = Color(colorState.composeColor),
+                                wheelStyle = wheelStyleState,
+                                onWheelStyleChange = { wheelStyleState = it },
+                                modifier = Modifier.size(190.dp)
                             )
                         }
-
-                        // Fine control slider to drag percentage values easily 
-                        Slider(
-                            value = valueState,
-                            onValueChange = { valueState = it.coerceIn(0f, 100f) },
-                            valueRange = 0f..100f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(colorState.composeColor),
-                                activeTrackColor = Color(colorState.composeColor),
-                                inactiveTrackColor = Color(0xFF49454F)
-                            ),
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
-                        )
                     }
 
                     // 2. Toggle Advanced Design Customizer if modifying an existing widget
@@ -411,6 +394,7 @@ fun EditWidgetDialogScreen(
                                                     WidgetStyle.GLOW -> "Glow Ambient"
                                                     WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
                                                     WidgetStyle.SOLID_FILL -> "Solid Accent"
+                                                    WidgetStyle.HOLLOW_RING -> "Thin Hollow"
                                                     WidgetStyle.LINEAR -> "Bar Progress"
                                                     WidgetStyle.MINIMAL -> "Minimal %"
                                                 }
@@ -590,286 +574,4 @@ fun EditWidgetDialogScreen(
         }
     }
 }
-}
-
-@Composable
-fun WidgetPreviewBlock(
-    label: String,
-    value: Float,
-    style: WidgetStyle,
-    color: WidgetColor,
-    bgPath: String?
-) {
-    val bgBitmap = remember(bgPath) {
-        if (!bgPath.isNullOrEmpty()) {
-            try {
-                android.graphics.BitmapFactory.decodeFile(bgPath)?.asImageBitmap()
-            } catch (e: Exception) {
-                null
-            }
-        } else null
-    }
-
-    Box(
-        modifier = Modifier
-            .size(170.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (style == WidgetStyle.SOLID_FILL && bgBitmap == null) Color(color.composeColor)
-                else Color(0xFF0F0F12)
-            )
-            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(18.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        if (bgBitmap != null) {
-            Image(
-                bitmap = bgBitmap,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.45f))
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(if (style == WidgetStyle.SOLID_FILL && bgBitmap == null) 0.dp else 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            when (style) {
-                WidgetStyle.CIRCLE -> {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val strokeColor = Color(color.composeColor)
-                        Canvas(modifier = Modifier.size(110.dp)) {
-                            drawCircle(
-                                color = strokeColor.copy(alpha = 0.15f),
-                                style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                            drawArc(
-                                color = strokeColor,
-                                startAngle = -90f,
-                                sweepAngle = (value / 100f) * 360f,
-                                useCenter = false,
-                                style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "${value.toInt()}%",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    color = strokeColor,
-                                    fontWeight = FontWeight.ExtraBold
-                                )
-                            )
-                            if (label.isNotBlank()) {
-                                Text(
-                                    text = if (label.length > 10) label.take(8) + ".." else label,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = Color(0xFFCAC4D0)
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-                WidgetStyle.LINEAR -> {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = label.ifBlank { "Progress" },
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "${value.toInt()}%",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = Color(color.composeColor),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LinearProgressIndicator(
-                            progress = { value / 100f },
-                            color = Color(color.composeColor),
-                            trackColor = Color(0xFF49454F),
-                            strokeCap = StrokeCap.Round,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(10.dp)
-                                .clip(RoundedCornerShape(5.dp))
-                        )
-                    }
-                }
-                WidgetStyle.MINIMAL -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "${value.toInt()}%",
-                            style = MaterialTheme.typography.displayMedium.copy(
-                                color = Color(color.composeColor),
-                                fontWeight = FontWeight.Black
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = label.uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFFCAC4D0),
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
-                            ),
-                            maxLines = 1
-                        )
-                    }
-                }
-                WidgetStyle.GLOW -> {
-                    val opacity = 0.15f + (value / 100f) * 0.50f
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(color.composeColor).copy(alpha = opacity))
-                            .padding(8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = label.ifBlank { "Goal" },
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "${value.toInt()}%",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Black
-                                )
-                            )
-                        }
-                    }
-                }
-                WidgetStyle.CORNER_CIRCLE -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.BottomEnd
-                    ) {
-                        val strokeColor = Color(color.composeColor)
-                        Canvas(modifier = Modifier.size(54.dp).padding(4.dp)) {
-                            drawCircle(
-                                color = strokeColor.copy(alpha = 0.15f),
-                                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                            drawArc(
-                                color = strokeColor,
-                                startAngle = -90f,
-                                sweepAngle = (value / 100f) * 360f,
-                                useCenter = false,
-                                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Top,
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = label.ifBlank { "Goal Tracker" },
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "${value.toInt()}%",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = Color(0xFFCAC4D0),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                        }
-                    }
-                }
-                WidgetStyle.SOLID_FILL -> {
-                    val onColor = if (color == WidgetColor.AMBER) Color.Black else Color.White
-                    val subColor = if (color == WidgetColor.AMBER) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f)
-                    val ringBgColor = if (color == WidgetColor.AMBER) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.2f)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.BottomEnd
-                    ) {
-                        Canvas(modifier = Modifier.size(54.dp).padding(4.dp)) {
-                            drawCircle(
-                                color = ringBgColor,
-                                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                            drawArc(
-                                color = onColor,
-                                startAngle = -90f,
-                                sweepAngle = (value / 100f) * 360f,
-                                useCenter = false,
-                                style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round)
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.Top,
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = label.ifBlank { "Goal Tracker" },
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    color = onColor,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "${value.toInt()}%",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = subColor,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

@@ -96,6 +96,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
     var value by remember { mutableFloatStateOf(70f) }
     var style by remember { mutableStateOf(WidgetStyle.CIRCLE) }
     var selectedColor by remember { mutableStateOf(WidgetColor.EMERALD) }
+    var wheelStyle by remember { mutableStateOf(WheelStyle.SLEEK_ARC) }
     var bgPath by remember { mutableStateOf<String?>(null) }
 
     val bgBitmap = remember(bgPath) {
@@ -429,6 +430,45 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                                 }
                             }
                         }
+                        WidgetStyle.HOLLOW_RING -> {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                val strokeColor = Color(selectedColor.composeColor)
+                                Canvas(modifier = Modifier.size(110.dp)) {
+                                    drawCircle(
+                                        color = strokeColor.copy(alpha = 0.12f),
+                                        style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                    drawArc(
+                                        color = strokeColor,
+                                        startAngle = -90f,
+                                        sweepAngle = (value / 100f) * 360f,
+                                        useCenter = false,
+                                        style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${value.toInt()}%",
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            color = Color.White,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    )
+                                    if (label.isNotBlank()) {
+                                        Text(
+                                            text = if (label.length > 12) label.take(10) + ".." else label,
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                color = Color(0xFFCAC4D0),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                     }
                 }
@@ -485,6 +525,38 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                     singleLine = true
                 )
 
+                // Numeric Wheel dial Setting
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Touch & Spin to Set Value",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color(0xFFCAC4D0),
+                            fontWeight = FontWeight.Bold
+                        ),
+                        modifier = Modifier.align(Alignment.Start)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(210.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularWheelSlider(
+                            value = value,
+                            onValueChange = { value = it },
+                            accentColor = Color(selectedColor.composeColor),
+                            wheelStyle = wheelStyle,
+                            onWheelStyleChange = { wheelStyle = it },
+                            modifier = Modifier.size(190.dp)
+                        )
+                    }
+                }
+
                 // Style Grid Selector
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
@@ -509,6 +581,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                                         WidgetStyle.GLOW -> "Glow Ambient"
                                         WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
                                         WidgetStyle.SOLID_FILL -> "Solid Accent"
+                                        WidgetStyle.HOLLOW_RING -> "Thin Hollow"
                                         WidgetStyle.LINEAR -> "Bar Progress"
                                         WidgetStyle.MINIMAL -> "Minimal %"
                                     }
