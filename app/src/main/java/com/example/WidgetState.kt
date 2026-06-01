@@ -12,17 +12,60 @@ enum class WidgetStyle {
     SOLID_FILL
 }
 
-enum class WidgetColor(val label: String, val hex: String, val composeColor: Long) {
-    EMERALD("Emerald", "#10B981", 0xFF10B981),
-    AMETHYST("Amethyst", "#8B5CF6", 0xFF8B5CF6),
-    AMBER("Amber", "#F59E0B", 0xFFF59E0B),
-    CORAL("Coral", "#F43F5E", 0xFFF43F5E),
-    DEEP_BLUE("Deep Blue", "#3B82F6", 0xFF3B82F6);
-
+class WidgetColor(val label: String, val hex: String, val composeColor: Long) {
     companion object {
+        val EMERALD = WidgetColor("Emerald", "#10B981", 0xFF10B981)
+        val AMETHYST = WidgetColor("Amethyst", "#8B5CF6", 0xFF8B5CF6)
+        val AMBER = WidgetColor("Amber", "#F59E0B", 0xFFF59E0B)
+        val CORAL = WidgetColor("Coral", "#F43F5E", 0xFFF43F5E)
+        val DEEP_BLUE = WidgetColor("Deep Blue", "#3B82F6", 0xFF3B82F6)
+
+        val entries = listOf(EMERALD, AMETHYST, AMBER, CORAL, DEEP_BLUE)
+
         fun fromName(name: String?): WidgetColor {
-            return entries.find { it.label.equals(name, ignoreCase = true) } ?: EMERALD
+            if (name == null || name.isBlank()) return EMERALD
+            
+            // If it is a hex code
+            if (name.startsWith("#")) {
+                return fromHex(name)
+            }
+            
+            // Check if match any default preset labels
+            val match = entries.find { it.label.equals(name, ignoreCase = true) }
+            if (match != null) return match
+            
+            // Could be a raw hex code without '#'
+            if (name.length in 6..8 && name.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) {
+                return fromHex("#$name")
+            }
+            
+            return EMERALD
         }
+
+        fun fromHex(hexString: String): WidgetColor {
+            try {
+                val cleaned = hexString.removePrefix("#").trim()
+                val parsedLong = when (cleaned.length) {
+                    6 -> ("FF" + cleaned).toLong(16)
+                    8 -> cleaned.toLong(16)
+                    else -> 0xFF10B981
+                }
+                val hexRepresentation = "#" + cleaned.uppercase()
+                return WidgetColor(hexRepresentation, hexRepresentation, parsedLong)
+            } catch (e: Exception) {
+                return EMERALD
+            }
+        }
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is WidgetColor) return false
+        return hex.lowercase() == other.hex.lowercase()
+    }
+
+    override fun hashCode(): Int {
+        return hex.lowercase().hashCode()
     }
 }
 
@@ -46,8 +89,8 @@ fun copyUriToInternalStorage(context: android.content.Context, uri: android.net.
             }
             android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, optionsSize)
 
-            // Limit image dimensions to a safe, crisp size (512x512) for home screen widgets
-            val maxDimension = 512
+            // Limit image dimensions to a safe, crisp size (300x300) for home screen widgets
+            val maxDimension = 300
             var inSampleSize = 1
             if (optionsSize.outHeight > maxDimension || optionsSize.outWidth > maxDimension) {
                 val halfHeight = optionsSize.outHeight / 2

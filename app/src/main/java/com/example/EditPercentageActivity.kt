@@ -16,13 +16,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -140,6 +142,10 @@ fun EditWidgetDialogScreen(
     val haptic = LocalHapticFeedback.current
     var lastHapticValue by remember { mutableIntStateOf(50) }
 
+    // Load active dashboard trackers from database to show as template presets
+    val trackersFlow = remember { AppDatabase.getDatabase(context).trackerDao().getAllTrackers() }
+    val databaseTrackers by trackersFlow.collectAsState(initial = emptyList())
+
     LaunchedEffect(isLoaded) {
         if (isLoaded) {
             lastHapticValue = valueState.toInt()
@@ -223,372 +229,602 @@ fun EditWidgetDialogScreen(
                             .verticalScroll(scrollState),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                    // Header Area
-                    Column {
-                        Text(
-                            text = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) "Create Percentify" else "Update Percentage",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFE6E1E5)
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) "Customize your home screen tracker" else "Quickly adjust tracker progress value",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = Color(0xFFCAC4D0),
-                                fontSize = 13.sp
-                            )
-                        )
-                    }
-
-                    // 1. Slider & Instant Number Input Section (ALWAYS VISIBLE, AT THE TOP)
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFF25232A))
-                            .padding(14.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        // Header Area
+                        Column {
                             Text(
-                                text = "CURRENT PROGRESS",
-                                style = MaterialTheme.typography.labelSmall.copy(
+                                text = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) "Create Percentify" else "Update Widget",
+                                style = MaterialTheme.typography.headlineSmall.copy(
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFD0BCFF),
-                                    letterSpacing = 1.sp
+                                    color = Color(0xFFE6E1E5)
                                 )
                             )
-
-                            // Editable numeric Text Field so they can type the numbers directly
-                            var percentInput by remember(valueState.toInt()) { mutableStateOf(valueState.toInt().toString()) }
-                            OutlinedTextField(
-                                value = percentInput,
-                                onValueChange = { input ->
-                                    val cleaned = input.filter { it.isDigit() }
-                                    if (cleaned.length <= 3) {
-                                        percentInput = cleaned
-                                        val nv = cleaned.toIntOrNull()
-                                        if (nv != null) {
-                                            valueState = nv.coerceIn(0, 100).toFloat()
-                                        } else if (cleaned.isEmpty()) {
-                                            valueState = 0f
-                                        }
-                                    }
-                                },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color(colorState.composeColor),
-                                    unfocusedTextColor = Color(colorState.composeColor),
-                                    focusedContainerColor = Color(0xFF1C1B1F),
-                                    unfocusedContainerColor = Color(0xFF1C1B1F),
-                                    focusedBorderColor = Color(colorState.composeColor),
-                                    unfocusedBorderColor = Color(0xFF49454F)
-                                ),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                ),
-                                suffix = { Text("%", color = Color(colorState.composeColor), fontWeight = FontWeight.Bold) },
-                                modifier = Modifier.width(85.dp),
-                                singleLine = true,
-                                shape = RoundedCornerShape(10.dp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) "Customize your home screen tracker" else "Select a preset goals template or update current value",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = Color(0xFFCAC4D0),
+                                    fontSize = 13.sp
+                                )
                             )
                         }
 
-                        // Interactive Wheel-style dial to adjust value
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            WheelProgressSlider(
-                                value = valueState,
-                                onValueChange = { newValue ->
-                                    valueState = newValue
-                                    val currentIntValue = newValue.toInt()
-                                    if (currentIntValue != lastHapticValue) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        lastHapticValue = currentIntValue
-                                    }
-                                },
-                                color = Color(colorState.composeColor),
-                                modifier = Modifier.testTag("value_wheel_slider")
-                            )
-                        }
-                    }
-
-                    // 2. Toggle Advanced Design Customizer if modifying an existing widget
-                    if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                        Surface(
-                            onClick = { showAdvanced = !showAdvanced },
-                            color = Color(0xFF2B2930),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                        // Presets Quick-Selector Row
+                        if (databaseTrackers.isNotEmpty()) {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
-                                    text = "Design & Label Customization",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFFD0BCFF)
-                                    )
-                                )
-                                Text(
-                                    text = if (showAdvanced) "▴ Hide" else "▾ Expand",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFCAC4D0)
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    // 3. Collapsible Design Properties
-                    AnimatedVisibility(
-                        visible = showAdvanced,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            // Label Input section
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
-                                    text = "WIDGET LABEL",
+                                    text = "SELECT FROM MY ACTIVE DASHBOARD",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFFD0BCFF),
                                         letterSpacing = 1.sp
                                     )
                                 )
+
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(databaseTrackers) { tracker ->
+                                        val c = WidgetColor.fromName(tracker.color)
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color(0xFF2B2930))
+                                                .border(
+                                                    1.dp,
+                                                    if (labelState == tracker.label) Color(c.composeColor) else Color.Transparent,
+                                                    RoundedCornerShape(12.dp)
+                                                )
+                                                .clickable {
+                                                    labelState = tracker.label
+                                                    valueState = tracker.value.toFloat()
+                                                    styleState = try { WidgetStyle.valueOf(tracker.style) } catch (e: Exception) { WidgetStyle.WHEEL }
+                                                    colorState = c
+                                                    bgPathState = tracker.bgPath
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    Toast.makeText(context, "Preset '${tracker.label}' applied!", Toast.LENGTH_SHORT).show()
+                                                }
+                                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(c.composeColor))
+                                                )
+                                                Text(
+                                                    text = tracker.label,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                )
+                                                Text(
+                                                    text = "${tracker.value}%",
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        color = Color(0xFFCAC4D0)
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 1. Slider & Instant Number Input Section (ALWAYS VISIBLE, AT THE TOP)
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF25232A))
+                                .padding(14.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "CURRENT PROGRESS",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFD0BCFF),
+                                        letterSpacing = 1.sp
+                                    )
+                                )
+
+                                // Editable numeric Text Field so they can type the numbers directly
+                                var percentInput by remember(valueState.toInt()) { mutableStateOf(valueState.toInt().toString()) }
                                 OutlinedTextField(
-                                    value = labelState,
-                                    onValueChange = { if (it.length <= 25) labelState = it },
+                                    value = percentInput,
+                                    onValueChange = { input ->
+                                        val cleaned = input.filter { it.isDigit() }
+                                        if (cleaned.length <= 3) {
+                                            percentInput = cleaned
+                                            val nv = cleaned.toIntOrNull()
+                                            if (nv != null) {
+                                                valueState = nv.coerceIn(0, 100).toFloat()
+                                            } else if (cleaned.isEmpty()) {
+                                                valueState = 0f
+                                            }
+                                        }
+                                    },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color(0xFFE6E1E5),
-                                        unfocusedTextColor = Color(0xFFCAC4D0),
-                                        focusedContainerColor = Color(0xFF2B2930),
-                                        unfocusedContainerColor = Color(0xFF2B2930),
+                                        focusedTextColor = Color(colorState.composeColor),
+                                        unfocusedTextColor = Color(colorState.composeColor),
+                                        focusedContainerColor = Color(0xFF1C1B1F),
+                                        unfocusedContainerColor = Color(0xFF1C1B1F),
                                         focusedBorderColor = Color(colorState.composeColor),
                                         unfocusedBorderColor = Color(0xFF49454F)
                                     ),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center
+                                    ),
+                                    suffix = { Text("%", color = Color(colorState.composeColor), fontWeight = FontWeight.Bold) },
+                                    modifier = Modifier.width(85.dp),
+                                    singleLine = true,
+                                    shape = RoundedCornerShape(10.dp)
                                 )
                             }
 
-                            // Style Grid
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(
-                                    text = "WIDGET STYLE",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFD0BCFF),
-                                        letterSpacing = 1.sp
-                                    )
-                                )
-
-                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    val styleChunks = WidgetStyle.entries.chunked(2)
-                                    styleChunks.forEach { rowStyles ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                        ) {
-                                            rowStyles.forEach { s ->
-                                                val isSelected = styleState == s
-                                                val friendlyName = when (s) {
-                                                    WidgetStyle.WHEEL -> "Wheel Type"
-                                                    WidgetStyle.GLOW -> "Glow Ambient"
-                                                    WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
-                                                    WidgetStyle.SOLID_FILL -> "Solid Accent"
-                                                    WidgetStyle.LINEAR -> "Bar Progress"
-                                                    WidgetStyle.MINIMAL -> "Minimal %"
-                                                }
-                                                Box(
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .clip(RoundedCornerShape(16.dp))
-                                                        .background(if (isSelected) Color(colorState.composeColor) else Color(0xFF49454F))
-                                                        .clickable { styleState = s }
-                                                        .padding(12.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = friendlyName,
-                                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = if (isSelected) {
-                                                                if (colorState == WidgetColor.AMBER) Color.Black else Color.White
-                                                            } else Color.White
-                                                        )
-                                                    )
-                                                }
-                                            }
-                                            if (rowStyles.size == 1) {
-                                                Spacer(modifier = Modifier.weight(1f))
-                                            }
+                            // Interactive Wheel-style dial to adjust value
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                WheelProgressSlider(
+                                    value = valueState,
+                                    onValueChange = { newValue ->
+                                        valueState = newValue
+                                        val currentIntValue = newValue.toInt()
+                                        if (currentIntValue != lastHapticValue) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                            lastHapticValue = currentIntValue
                                         }
-                                    }
-                                }
-                            }
-
-                            // Color Palette Picker
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(
-                                    text = "ACCENT COLOR",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFD0BCFF),
-                                        letterSpacing = 1.sp
-                                    )
+                                    },
+                                    color = Color(colorState.composeColor),
+                                    modifier = Modifier.testTag("value_wheel_slider")
                                 )
+                            }
+                        }
 
+                        // 2. Toggle Advanced Design Customizer if modifying an existing widget
+                        if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                            Surface(
+                                onClick = { showAdvanced = !showAdvanced },
+                                color = Color(0xFF2B2930),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Row(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(Color(0xFF2B2930))
-                                        .padding(12.dp)
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    WidgetColor.entries.forEach { c ->
-                                        val isSelected = colorState == c
-                                        Box(
-                                            modifier = Modifier
-                                                .size(34.dp)
-                                                .clip(CircleShape)
-                                                .background(Color(c.composeColor))
-                                                .border(
-                                                    width = if (isSelected) 3.dp else 0.dp,
-                                                    color = Color.White,
-                                                    shape = CircleShape
-                                                )
-                                                .clickable { colorState = c }
+                                    Text(
+                                        text = "Design & Label Customization",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFFD0BCFF)
                                         )
-                                    }
+                                    )
+                                    Text(
+                                        text = if (showAdvanced) "▴ Hide" else "▾ Expand",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFCAC4D0)
+                                        )
+                                    )
                                 }
                             }
+                        }
 
-                            // Custom Background Image
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(
-                                    text = "WIDGET BACKGROUND",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFD0BCFF),
-                                        letterSpacing = 1.sp
+                        // 3. Collapsible Design Properties
+                        AnimatedVisibility(
+                            visible = showAdvanced,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                // Label Input section
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(
+                                        text = "WIDGET LABEL",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFD0BCFF),
+                                            letterSpacing = 1.sp
+                                        )
                                     )
-                                )
-
-                                val pickerLauncher = rememberLauncherForActivityResult(
-                                    contract = ActivityResultContracts.GetContent()
-                                ) { uri ->
-                                    if (uri != null) {
-                                        val targetFileName = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) "bg_preview.jpg" else "bg_widget_${appWidgetId}.jpg"
-                                        val path = copyUriToInternalStorage(context, uri, targetFileName)
-                                        if (path != null) {
-                                            bgPathState = path
-                                        }
-                                    }
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Button(
-                                        onClick = { pickerLauncher.launch("image/*") },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = Color(0xFF2B2930),
-                                            contentColor = Color.White
+                                    OutlinedTextField(
+                                        value = labelState,
+                                        onValueChange = { if (it.length <= 25) labelState = it },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = Color(0xFFE6E1E5),
+                                            unfocusedTextColor = Color(0xFFCAC4D0),
+                                            focusedContainerColor = Color(0xFF2B2930),
+                                            unfocusedContainerColor = Color(0xFF2B2930),
+                                            focusedBorderColor = Color(colorState.composeColor),
+                                            unfocusedBorderColor = Color(0xFF49454F)
                                         ),
                                         shape = RoundedCornerShape(12.dp),
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Text(
-                                            text = if (bgPathState == null) "Select Photo" else "Change Photo",
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true
+                                    )
+                                }
+
+                                // Style Grid
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "WIDGET STYLE",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFD0BCFF),
+                                            letterSpacing = 1.sp
+                                        )
+                                    )
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        val styleChunks = WidgetStyle.entries.chunked(2)
+                                        styleChunks.forEach { rowStyles ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                rowStyles.forEach { s ->
+                                                    val isSelected = styleState == s
+                                                    val friendlyName = when (s) {
+                                                        WidgetStyle.WHEEL -> "Wheel Type"
+                                                        WidgetStyle.GLOW -> "Glow Ambient"
+                                                        WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
+                                                        WidgetStyle.SOLID_FILL -> "Solid Accent"
+                                                        WidgetStyle.LINEAR -> "Bar Progress"
+                                                        WidgetStyle.MINIMAL -> "Minimal %"
+                                                    }
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .clip(RoundedCornerShape(16.dp))
+                                                            .background(if (isSelected) Color(colorState.composeColor) else Color(0xFF49454F))
+                                                            .clickable { styleState = s }
+                                                            .padding(12.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = friendlyName,
+                                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isSelected) {
+                                                                    if (colorState == WidgetColor.AMBER) Color.Black else Color.White
+                                                                } else Color.White
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                                if (rowStyles.size == 1) {
+                                                    Spacer(modifier = Modifier.weight(1f))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Color Palette Picker
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "ACCENT COLOR",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFD0BCFF),
+                                            letterSpacing = 1.sp
+                                        )
+                                    )
+
+                                    val presetColors = remember {
+                                        listOf(
+                                            WidgetColor.EMERALD,
+                                            WidgetColor.AMETHYST,
+                                            WidgetColor.AMBER,
+                                            WidgetColor.CORAL
                                         )
                                     }
 
-                                    if (bgPathState != null) {
-                                        Button(
-                                            onClick = { bgPathState = null },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = Color(0xFF8C1D18),
-                                                contentColor = Color.White
-                                            ),
-                                            shape = RoundedCornerShape(12.dp)
+                                    val isCustomSelected = remember(colorState) {
+                                        colorState !in presetColors
+                                    }
+
+                                    val rainbowBrush = remember {
+                                        androidx.compose.ui.graphics.Brush.sweepGradient(
+                                            colors = listOf(
+                                                Color(0xFFFF0000),
+                                                Color(0xFFFFFF00),
+                                                Color(0xFF00FF00),
+                                                Color(0xFF00FFFF),
+                                                Color(0xFF0000FF),
+                                                Color(0xFFFF00FF),
+                                                Color(0xFFFF0000)
+                                            )
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(Color(0xFF2B2930))
+                                            .padding(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Render the 4 preset circles
+                                        presetColors.forEach { preset ->
+                                            val isSelected = colorState == preset
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(preset.composeColor))
+                                                    .border(
+                                                        width = if (isSelected) 3.dp else 0.dp,
+                                                        color = Color.White,
+                                                        shape = CircleShape
+                                                    )
+                                                    .clickable { colorState = preset }
+                                                    .testTag("color_button_${preset.label.lowercase()}")
+                                            )
+                                        }
+
+                                        // Render the 5th "Custom" circle
+                                        val customCircleBackground = if (isCustomSelected) {
+                                            Color(colorState.composeColor)
+                                        } else {
+                                            Color.Transparent
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .then(
+                                                    if (isCustomSelected) {
+                                                        Modifier.background(customCircleBackground)
+                                                    } else {
+                                                        Modifier.background(rainbowBrush)
+                                                    }
+                                                )
+                                                .border(
+                                                    width = if (isCustomSelected) 3.dp else 1.dp,
+                                                    color = if (isCustomSelected) Color.White else Color(0x33FFFFFF),
+                                                    shape = CircleShape
+                                                )
+                                                .clickable {
+                                                    if (!isCustomSelected) {
+                                                        colorState = WidgetColor.fromHex("#8B5CF6")
+                                                    }
+                                                }
+                                                .testTag("color_button_custom"),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Text(
-                                                text = "Clear",
-                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Custom Color Selector",
+                                                tint = if (isCustomSelected) {
+                                                    if (colorState == WidgetColor.AMBER) Color.Black else Color.White
+                                                } else {
+                                                    Color.White
+                                                },
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (isCustomSelected) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        
+                                        val hsv = FloatArray(3)
+                                        android.graphics.Color.colorToHSV(colorState.composeColor.toInt(), hsv)
+                                        val hue = hsv[0]
+
+                                        val horizontalRainbowBrush = remember {
+                                            androidx.compose.ui.graphics.Brush.horizontalGradient(
+                                                colors = listOf(
+                                                    Color(0xFFFF0000),
+                                                    Color(0xFFFFFF00),
+                                                    Color(0xFF00FF00),
+                                                    Color(0xFF00FFFF),
+                                                    Color(0xFF0000FF),
+                                                    Color(0xFFFF00FF),
+                                                    Color(0xFFFF0000)
+                                                )
+                                            )
+                                        }
+
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "Hue Spectrum Slider",
+                                                    color = Color(0xFF94A3B8),
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                                Text(
+                                                    text = "Selected: ${colorState.hex}",
+                                                    color = Color(colorState.composeColor),
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                            }
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(14.dp)
+                                                    .clip(RoundedCornerShape(7.dp))
+                                                    .background(horizontalRainbowBrush)
+                                            )
+
+                                            Slider(
+                                                value = hue,
+                                                onValueChange = { newHue ->
+                                                    val hsvColor = android.graphics.Color.HSVToColor(floatArrayOf(newHue, 0.85f, 0.95f))
+                                                    val hexString = String.format("#%06X", 0xFFFFFF and hsvColor)
+                                                    colorState = WidgetColor.fromHex(hexString)
+                                                },
+                                                valueRange = 0f..360f,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Color(colorState.composeColor),
+                                                    activeTrackColor = Color.Transparent,
+                                                    inactiveTrackColor = Color.Transparent
+                                                )
+                                            )
+
+                                            var hexInputState by remember(colorState.hex) { mutableStateOf(colorState.hex) }
+                                            OutlinedTextField(
+                                                value = hexInputState,
+                                                onValueChange = { input ->
+                                                    val filtered = input.take(7)
+                                                    hexInputState = filtered
+                                                    if (filtered.startsWith("#") && filtered.length == 7) {
+                                                        colorState = WidgetColor.fromHex(filtered)
+                                                    } else if (!filtered.startsWith("#") && filtered.length == 6) {
+                                                        colorState = WidgetColor.fromHex("#$filtered")
+                                                    }
+                                                },
+                                                label = { Text("Custom Color Hex", color = Color(0xFFCAC4D0)) },
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedTextColor = Color(0xFFE6E1E5),
+                                                    unfocusedTextColor = Color(0xFFCAC4D0),
+                                                    focusedContainerColor = Color(0xFF2B2930),
+                                                    unfocusedContainerColor = Color(0xFF2B2930),
+                                                    focusedBorderColor = Color(colorState.composeColor),
+                                                    unfocusedBorderColor = Color(0xFF49454F)
+                                                )
                                             )
                                         }
                                     }
                                 }
+
+                                // Custom Background Image
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "WIDGET BACKGROUND",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFD0BCFF),
+                                            letterSpacing = 1.sp
+                                        )
+                                    )
+
+                                    val pickerLauncher = rememberLauncherForActivityResult(
+                                        contract = ActivityResultContracts.GetContent()
+                                    ) { uri ->
+                                        if (uri != null) {
+                                            val targetFileName = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) "bg_preview.jpg" else "bg_widget_${appWidgetId}.jpg"
+                                            val path = copyUriToInternalStorage(context, uri, targetFileName)
+                                            if (path != null) {
+                                                bgPathState = path
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Button(
+                                            onClick = { pickerLauncher.launch("image/*") },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color(0xFF2B2930),
+                                                contentColor = Color.White
+                                            ),
+                                            shape = RoundedCornerShape(12.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                text = if (bgPathState == null) "Select Photo" else "Change Photo",
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+
+                                        if (bgPathState != null) {
+                                            Button(
+                                                onClick = { bgPathState = null },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = Color(0xFF8C1D18),
+                                                    contentColor = Color.White
+                                                ),
+                                                shape = RoundedCornerShape(12.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Clear",
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
 
-                    // Dialog Actions
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TextButton(
-                            onClick = onDismiss,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                        // Dialog Actions
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Cancel",
-                                color = Color(0xFFD0BCFF),
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                onSaved(
-                                    labelState.ifBlank { "Progress" },
-                                    valueState.toInt(),
-                                    styleState,
-                                    colorState,
-                                    bgPathState
+                            TextButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            ) {
+                                Text(
+                                    text = "Cancel",
+                                    color = Color(0xFFD0BCFF),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
                                 )
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(colorState.composeColor)
-                            ),
-                            shape = RoundedCornerShape(24.dp),
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
-                        ) {
-                            Text(
-                                text = "Save",
-                                color = if (colorState == WidgetColor.AMBER) Color.Black else Color.White,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                            )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    onSaved(
+                                        labelState.ifBlank { "Progress" },
+                                        valueState.toInt(),
+                                        styleState,
+                                        colorState,
+                                        bgPathState
+                                    )
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(colorState.composeColor)
+                                ),
+                                shape = RoundedCornerShape(24.dp),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    text = "Save",
+                                    color = if (colorState == WidgetColor.AMBER) Color.Black else Color.White,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
-}
 }
