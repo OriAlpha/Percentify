@@ -788,11 +788,13 @@ fun TrackerEditDialog(
     var lastHapticValue by remember { mutableIntStateOf((tracker?.value ?: 50)) }
 
     androidx.compose.ui.window.Dialog(
-        onDismissRequest = onDismiss
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.92f)
+                .widthIn(max = 480.dp)
                 .padding(vertical = 16.dp)
                 .wrapContentHeight(),
             shape = RoundedCornerShape(24.dp),
@@ -993,7 +995,7 @@ fun TrackerEditDialog(
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFF2B2930))
                             .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Render the 4 preset circles

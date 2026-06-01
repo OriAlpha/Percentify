@@ -237,6 +237,7 @@ fun EditWidgetDialogScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)) // Dim outer background under the simulated dialog for a gorgeous overlay feel
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -251,10 +252,11 @@ fun EditWidgetDialogScreen(
                     indication = null
                 ) { /* Prevent click propagation to background */ }
         ) {
-            val maxDialogHeight = maxHeight * 0.9f
+            val maxDialogHeight = maxHeight * 0.92f
             Surface(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.92f)
+                    .widthIn(max = 480.dp)
                     .heightIn(max = maxDialogHeight),
                 shape = RoundedCornerShape(28.dp),
                 color = Color(0xFF1C1B1F), // Immersive Dark background
@@ -609,7 +611,7 @@ fun EditWidgetDialogScreen(
                                             .clip(RoundedCornerShape(16.dp))
                                             .background(Color(0xFF2B2930))
                                             .padding(12.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalArrangement = Arrangement.SpaceEvenly,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         // Render the 4 preset circles
