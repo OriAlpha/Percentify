@@ -533,11 +533,9 @@ fun EditWidgetDialogScreen(
                                                     val isSelected = styleState == s
                                                     val friendlyName = when (s) {
                                                         WidgetStyle.WHEEL -> "Wheel Type"
-                                                        WidgetStyle.GLOW -> "Glow Ambient"
                                                         WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
                                                         WidgetStyle.SOLID_FILL -> "Solid Accent"
                                                         WidgetStyle.LINEAR -> "Bar Progress"
-                                                        WidgetStyle.MINIMAL -> "Minimal %"
                                                     }
                                                     Box(
                                                         modifier = Modifier
@@ -656,8 +654,11 @@ fun EditWidgetDialogScreen(
                                                     shape = CircleShape
                                                 )
                                                 .clickable {
-                                                    if (!isCustomSelected) {
-                                                        colorState = WidgetColor.fromHex("#8B5CF6")
+                                                    if (true) {
+                                                        val randomHue = (0..359).random().toFloat()
+                                                        val hsvColor = android.graphics.Color.HSVToColor(floatArrayOf(randomHue, 0.85f, 0.95f))
+                                                        val hexString = String.format("#%06X", 0xFFFFFF and hsvColor)
+                                                        colorState = WidgetColor.fromHex(hexString)
                                                     }
                                                 }
                                                 .testTag("color_button_custom"),

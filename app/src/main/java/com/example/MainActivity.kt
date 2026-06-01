@@ -521,66 +521,6 @@ fun TrackerLayoutPreview(
                         )
                     }
                 }
-                WidgetStyle.MINIMAL -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "$value%",
-                            style = MaterialTheme.typography.displaySmall.copy(
-                                color = Color(color.composeColor),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 34.sp
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = label.uppercase(),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = Color(0xFFCAC4D0),
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                fontSize = 10.sp
-                            ),
-                            maxLines = 1
-                        )
-                    }
-                }
-                WidgetStyle.GLOW -> {
-                    val opacity = 0.15f + (value / 100f) * 0.45f
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(color.composeColor).copy(alpha = opacity))
-                            .padding(6.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = label.ifBlank { "Goal" },
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                maxLines = 1,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "$value%",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Black
-                                )
-                            )
-                        }
-                    }
-                }
                 WidgetStyle.CORNER_CIRCLE -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -973,7 +913,7 @@ fun TrackerEditDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        WidgetStyle.entries.chunked(3).forEach { group ->
+                        WidgetStyle.entries.chunked(2).forEach { group ->
                             Column(
                                 modifier = Modifier.weight(1f),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -982,11 +922,9 @@ fun TrackerEditDialog(
                                     val isSelected = styleState == s
                                     val friendlyName = when (s) {
                                         WidgetStyle.WHEEL -> "Wheel"
-                                        WidgetStyle.GLOW -> "Glow"
                                         WidgetStyle.CORNER_CIRCLE -> "Ring"
                                         WidgetStyle.SOLID_FILL -> "Solid"
                                         WidgetStyle.LINEAR -> "Bar"
-                                        WidgetStyle.MINIMAL -> "Minimal"
                                     }
                                     Box(
                                         modifier = Modifier
@@ -1100,10 +1038,10 @@ fun TrackerEditDialog(
                                     shape = CircleShape
                                 )
                                 .clickable {
-                                    if (!isCustomSelected) {
-                                        // Default to a beautiful violet color if entering custom mode
-                                        colorState = WidgetColor.fromHex("#8B5CF6")
-                                    }
+                                    val randomHue = (0..359).random().toFloat()
+                                    val hsvColor = android.graphics.Color.HSVToColor(floatArrayOf(randomHue, 0.85f, 0.95f))
+                                    val hexString = String.format("#%06X", 0xFFFFFF and hsvColor)
+                                    colorState = WidgetColor.fromHex(hexString)
                                 }
                                 .testTag("color_button_custom"),
                             contentAlignment = Alignment.Center

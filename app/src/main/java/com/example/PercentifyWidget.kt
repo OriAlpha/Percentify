@@ -98,10 +98,6 @@ fun WidgetContent(
             if (bgBitmap != null) ColorProvider(Color.Transparent)
             else ColorProvider(Color(widgetColor.composeColor))
         }
-        WidgetStyle.GLOW -> {
-            val baseAlphaFactor = 0.15f + (value / 100f) * 0.40f
-            ColorProvider(Color(widgetColor.composeColor).copy(alpha = baseAlphaFactor))
-        }
         else -> {
             if (bgBitmap != null) ColorProvider(Color.Transparent)
             else ColorProvider(Color(0xFF1C1B1F)) // Elegant custom background
@@ -195,57 +191,6 @@ fun WidgetContent(
                         modifier = GlanceModifier.fillMaxWidth().height(10.dp).cornerRadius(5.dp),
                         color = ColorProvider(if (style == WidgetStyle.SOLID_FILL && widgetColor == WidgetColor.AMBER) Color.Black else Color(widgetColor.composeColor)),
                         backgroundColor = ColorProvider(if (style == WidgetStyle.SOLID_FILL) Color.Black.copy(alpha = 0.2f) else Color(0xFF49454F))
-                    )
-                }
-            }
-            WidgetStyle.MINIMAL -> {
-                val textColor = if (widgetColor == WidgetColor.AMBER) Color(0xFFE5A93C) else Color(widgetColor.composeColor)
-                Column(
-                    modifier = GlanceModifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "$value%",
-                        style = TextStyle(
-                            color = ColorProvider(textColor),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 38.sp
-                        )
-                    )
-                    Spacer(modifier = GlanceModifier.height(4.dp))
-                    Text(
-                        text = label.uppercase(),
-                        style = TextStyle(
-                            color = ColorProvider(Color(0xFFCAC4D0)),
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 11.sp
-                        )
-                    )
-                }
-            }
-            WidgetStyle.GLOW -> {
-                Column(
-                    modifier = GlanceModifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = if (label.length > 14) label.take(12) + ".." else label,
-                        style = TextStyle(
-                            color = ColorProvider(Color.White),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    )
-                    Spacer(modifier = GlanceModifier.height(4.dp))
-                    Text(
-                        text = "$value%",
-                        style = TextStyle(
-                            color = ColorProvider(Color.White),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp
-                        )
                     )
                 }
             }

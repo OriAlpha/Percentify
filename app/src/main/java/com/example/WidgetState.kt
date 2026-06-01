@@ -6,8 +6,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 enum class WidgetStyle {
     WHEEL,
     LINEAR,
-    MINIMAL,
-    GLOW,
     CORNER_CIRCLE,
     SOLID_FILL
 }
