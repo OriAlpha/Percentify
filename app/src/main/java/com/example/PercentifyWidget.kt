@@ -43,11 +43,11 @@ class PercentifyWidget : GlanceAppWidget() {
             val prefs = currentState<Preferences>()
             val label = prefs[WidgetStateKeys.LABEL] ?: "Goal Progress"
             val value = prefs[WidgetStateKeys.VALUE] ?: 50
-            val styleStr = prefs[WidgetStateKeys.STYLE] ?: WidgetStyle.CIRCLE.name
+            val styleStr = prefs[WidgetStateKeys.STYLE] ?: WidgetStyle.WHEEL.name
             val style = try {
-                WidgetStyle.valueOf(styleStr)
+                if (styleStr == "CIRCLE") WidgetStyle.WHEEL else WidgetStyle.valueOf(styleStr)
             } catch (e: Exception) {
-                WidgetStyle.CIRCLE
+                WidgetStyle.WHEEL
             }
             val colorStr = prefs[WidgetStateKeys.COLOR] ?: WidgetColor.EMERALD.label
             val widgetColor = WidgetColor.fromName(colorStr)
@@ -144,15 +144,15 @@ fun WidgetContent(
             contentAlignment = Alignment.Center
         ) {
             when (style) {
-            WidgetStyle.CIRCLE -> {
-                val circleBitmap = WidgetBitmapRenderer.drawCircleProgress(
+            WidgetStyle.WHEEL -> {
+                val wheelBitmap = WidgetBitmapRenderer.drawWheelProgress(
                     percentage = value,
                     hexColor = widgetColor.hex,
                     label = label
                 )
                 Image(
-                    provider = ImageProvider(circleBitmap),
-                    contentDescription = "Circle Progress Tracker $value%",
+                    provider = ImageProvider(wheelBitmap),
+                    contentDescription = "Wheel Progress Tracker $value%",
                     modifier = GlanceModifier.fillMaxSize()
                 )
             }

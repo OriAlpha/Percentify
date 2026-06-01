@@ -98,7 +98,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
     var value by remember { mutableFloatStateOf(70f) }
     val haptic = LocalHapticFeedback.current
     var lastHapticValue by remember { mutableIntStateOf(70) }
-    var style by remember { mutableStateOf(WidgetStyle.CIRCLE) }
+    var style by remember { mutableStateOf(WidgetStyle.WHEEL) }
     var selectedColor by remember { mutableStateOf(WidgetColor.EMERALD) }
     var bgPath by remember { mutableStateOf<String?>(null) }
 
@@ -203,26 +203,42 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                         contentAlignment = Alignment.Center
                     ) {
                         when (style) {
-                        WidgetStyle.CIRCLE -> {
+                        WidgetStyle.WHEEL -> {
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 val strokeColor = Color(selectedColor.composeColor)
                                 Canvas(modifier = Modifier.size(110.dp)) {
-                                    // Draw background low alpha ring
-                                    drawCircle(
-                                        color = strokeColor.copy(alpha = 0.15f),
-                                        style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                                    )
-                                    // Draw actual progress arc
-                                    drawArc(
-                                        color = strokeColor,
-                                        startAngle = -90f,
-                                        sweepAngle = (value / 100f) * 360f,
-                                        useCenter = false,
-                                        style = Stroke(width = 10.dp.toPx(), cap = StrokeCap.Round)
-                                    )
+                                    val centerX = size.width / 2f
+                                    val centerY = size.height / 2f
+                                    val outerRadius = (size.width / 2f) - 6.dp.toPx()
+                                    val innerRadius = outerRadius - 12.dp.toPx()
+                                    val numTicks = 36
+                                    val tickWidth = 3.dp.toPx()
+
+                                    for (i in 0 until numTicks) {
+                                        val angleDegrees = -90f + (i * (360f / numTicks))
+                                        val angleRad = Math.toRadians(angleDegrees.toDouble())
+                                        val cosVal = Math.cos(angleRad).toFloat()
+                                        val sinVal = Math.sin(angleRad).toFloat()
+
+                                        val isHighlighted = i < (value / 100f) * numTicks
+                                        val tickColor = if (isHighlighted) strokeColor else strokeColor.copy(alpha = 0.15f)
+
+                                        val startX = centerX + innerRadius * cosVal
+                                        val startY = centerY + innerRadius * sinVal
+                                        val endX = centerX + outerRadius * cosVal
+                                        val endY = centerY + outerRadius * sinVal
+
+                                        drawLine(
+                                            color = tickColor,
+                                            start = androidx.compose.ui.geometry.Offset(startX, startY),
+                                            end = androidx.compose.ui.geometry.Offset(endX, endY),
+                                            strokeWidth = tickWidth,
+                                            cap = StrokeCap.Round
+                                        )
+                                    }
                                 }
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
@@ -489,41 +505,21 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                     singleLine = true
                 )
 
-                // Sleek horizontal Slider to change value
+                // Interactive Wheel-style dial to adjust value
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Progress Value",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color(0xFFCAC4D0),
-                                fontWeight = FontWeight.Bold
-                            )
+                    Text(
+                        text = "Interactive Wheel Progress Controller",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = Color(0xFFCAC4D0),
+                            fontWeight = FontWeight.Bold
                         )
-                        
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(selectedColor.composeColor).copy(alpha = 0.15f))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "${value.toInt()}%",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    color = Color(selectedColor.composeColor),
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                        }
-                    }
+                    )
 
-                    Slider(
+                    WheelProgressSlider(
                         value = value,
                         onValueChange = { newValue ->
                             value = newValue
@@ -533,15 +529,8 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                                 lastHapticValue = currentIntValue
                             }
                         },
-                        valueRange = 0f..100f,
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color(selectedColor.composeColor),
-                            activeTrackColor = Color(selectedColor.composeColor),
-                            inactiveTrackColor = Color(0xFF49454F)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("value_slider")
+                        color = Color(selectedColor.composeColor),
+                        modifier = Modifier.testTag("value_wheel_slider")
                     )
                 }
 
@@ -565,7 +554,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                                 rowStyles.forEach { s ->
                                     val isSelected = style == s
                                     val friendlyName = when (s) {
-                                        WidgetStyle.CIRCLE -> "Classic Circle"
+                                        WidgetStyle.WHEEL -> "Wheel Type"
                                         WidgetStyle.GLOW -> "Glow Ambient"
                                         WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
                                         WidgetStyle.SOLID_FILL -> "Solid Accent"

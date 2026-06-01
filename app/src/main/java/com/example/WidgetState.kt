@@ -4,7 +4,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 enum class WidgetStyle {
-    CIRCLE,
+    WHEEL,
     LINEAR,
     MINIMAL,
     GLOW,

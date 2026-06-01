@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -130,7 +131,7 @@ fun EditWidgetDialogScreen(
 
     var labelState by remember { mutableStateOf("Progress Meter") }
     var valueState by remember { mutableFloatStateOf(50f) }
-    var styleState by remember { mutableStateOf(WidgetStyle.CIRCLE) }
+    var styleState by remember { mutableStateOf(WidgetStyle.WHEEL) }
     var colorState by remember { mutableStateOf(WidgetColor.EMERALD) }
     var bgPathState by remember { mutableStateOf<String?>(null) }
     var isLoaded by remember { mutableStateOf(false) }
@@ -156,7 +157,11 @@ fun EditWidgetDialogScreen(
                 prefs[WidgetStateKeys.LABEL]?.let { labelState = it }
                 prefs[WidgetStateKeys.VALUE]?.let { valueState = it.toFloat() }
                 prefs[WidgetStateKeys.STYLE]?.let {
-                    styleState = try { WidgetStyle.valueOf(it) } catch (e: Exception) { WidgetStyle.CIRCLE }
+                    styleState = try {
+                        if (it == "CIRCLE") WidgetStyle.WHEEL else WidgetStyle.valueOf(it)
+                    } catch (e: Exception) {
+                        WidgetStyle.WHEEL
+                    }
                 }
                 prefs[WidgetStateKeys.COLOR]?.let {
                     colorState = WidgetColor.fromName(it)
@@ -296,25 +301,25 @@ fun EditWidgetDialogScreen(
                             )
                         }
 
-                        // Interactive slider to adjust value
-                        Slider(
-                            value = valueState,
-                            onValueChange = { newValue ->
-                                valueState = newValue
-                                val currentIntValue = newValue.toInt()
-                                if (currentIntValue != lastHapticValue) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    lastHapticValue = currentIntValue
-                                }
-                            },
-                            valueRange = 0f..100f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(colorState.composeColor),
-                                activeTrackColor = Color(colorState.composeColor),
-                                inactiveTrackColor = Color(0xFF49454F)
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        // Interactive Wheel-style dial to adjust value
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            WheelProgressSlider(
+                                value = valueState,
+                                onValueChange = { newValue ->
+                                    valueState = newValue
+                                    val currentIntValue = newValue.toInt()
+                                    if (currentIntValue != lastHapticValue) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        lastHapticValue = currentIntValue
+                                    }
+                                },
+                                color = Color(colorState.composeColor),
+                                modifier = Modifier.testTag("value_wheel_slider")
+                            )
+                        }
                     }
 
                     // 2. Toggle Advanced Design Customizer if modifying an existing widget
@@ -403,7 +408,7 @@ fun EditWidgetDialogScreen(
                                             rowStyles.forEach { s ->
                                                 val isSelected = styleState == s
                                                 val friendlyName = when (s) {
-                                                    WidgetStyle.CIRCLE -> "Classic Circle"
+                                                    WidgetStyle.WHEEL -> "Wheel Type"
                                                     WidgetStyle.GLOW -> "Glow Ambient"
                                                     WidgetStyle.CORNER_CIRCLE -> "Corner Ring"
                                                     WidgetStyle.SOLID_FILL -> "Solid Accent"

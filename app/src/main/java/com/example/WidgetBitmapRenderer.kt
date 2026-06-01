@@ -7,7 +7,7 @@ import android.graphics.RectF
 import android.graphics.Typeface
 
 object WidgetBitmapRenderer {
-    fun drawCircleProgress(percentage: Int, hexColor: String, label: String? = null): Bitmap {
+    fun drawWheelProgress(percentage: Int, hexColor: String, label: String? = null): Bitmap {
         val size = 200
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -19,49 +19,53 @@ object WidgetBitmapRenderer {
             android.graphics.Color.parseColor("#10B981")
         }
 
-        // 1. Antialias Paints
-        val bgRingPaint = Paint().apply {
+        // Active and inactive paints
+        val activePaint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.STROKE
             color = baseColor
-            alpha = 40 // low alpha background ring
-            strokeWidth = 16f
+            strokeWidth = 6f
             strokeCap = Paint.Cap.ROUND
         }
 
-        val progressPaint = Paint().apply {
+        val inactivePaint = Paint().apply {
             isAntiAlias = true
             style = Paint.Style.STROKE
             color = baseColor
-            strokeWidth = 16f
+            alpha = 38 // ~15% alpha
+            strokeWidth = 6f
             strokeCap = Paint.Cap.ROUND
         }
 
-        // Create margin-aware boundary for ring
-        val margin = 16f
-        val rect = RectF(margin, margin, size - margin, size - margin)
+        val centerX = size / 2f
+        val centerY = size / 2f
+        val outerRadius = (size / 2f) - 16f
+        val innerRadius = outerRadius - 20f
 
-        // 2. Draw background ring (full 360 deg)
-        canvas.drawArc(rect, 0f, 360f, false, bgRingPaint)
+        val numTicks = 36
+        for (i in 0 until numTicks) {
+            val angleDegrees = -90f + (i * (360f / numTicks))
+            val angleRad = Math.toRadians(angleDegrees.toDouble())
+            val cosVal = Math.cos(angleRad).toFloat()
+            val sinVal = Math.sin(angleRad).toFloat()
 
-        // 3. Draw progress arc (starting from -90 aka top)
-        val sweepAngle = (percentage / 100f) * 360f
-        canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
+            val isHighlighted = i < (percentage / 100f) * numTicks
+            val paint = if (isHighlighted) activePaint else inactivePaint
 
-        // 4. Center numeric text
+            val startX = centerX + innerRadius * cosVal
+            val startY = centerY + innerRadius * sinVal
+            val endX = centerX + outerRadius * cosVal
+            val endY = centerY + outerRadius * sinVal
+
+            canvas.drawLine(startX, startY, endX, endY, paint)
+        }
+
+        // Center numeric text
         val numPaint = Paint().apply {
             isAntiAlias = true
             color = baseColor
             textSize = 52f
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textAlign = Paint.Align.CENTER
-        }
-
-        val percentPaint = Paint().apply {
-            isAntiAlias = true
-            color = baseColor
-            textSize = 24f
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             textAlign = Paint.Align.CENTER
         }
 
