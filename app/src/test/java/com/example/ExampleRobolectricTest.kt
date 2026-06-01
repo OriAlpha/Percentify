@@ -1,5 +1,6 @@
 package com.example
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -44,74 +45,61 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun testAllWidgetStylesRenderWithoutCrashing() {
+    fun testTrackerEditDialogRendersAndInputsText() {
         composeTestRule.setContent {
             MyApplicationTheme {
-                PercentifyDashboardScreen()
+                TrackerEditDialog(
+                    tracker = null,
+                    onDismiss = {},
+                    onSave = { _, _, _, _, _ -> },
+                    onDelete = {}
+                )
             }
         }
+        
+        composeTestRule.waitForIdle()
 
-        // Cycle through all available layout styles to guarantee clean styling values
-        WidgetStyle.entries.forEach { style ->
-            val tag = "style_button_${style.name.lowercase()}"
-            composeTestRule.onNodeWithTag(tag)
-                .assertExists()
-                .performClick()
-
-            composeTestRule.waitForIdle()
-            // Confirm preview container is drawn successfully without crashing
-            composeTestRule.onNodeWithTag("widget_preview_card").assertExists()
-        }
+        // Verify label input exists and type text safely
+        composeTestRule.onNodeWithTag("dialog_label_input").assertExists()
+        composeTestRule.onNodeWithTag("dialog_label_input").performTextInput("Gym Habits")
+        composeTestRule.onNodeWithTag("dialog_label_input").assertTextContains("Gym Habits")
     }
 
     @Test
-    fun testLabelInputUpdatesState() {
+    fun testTrackerEditDialogColorPicking() {
         composeTestRule.setContent {
             MyApplicationTheme {
-                PercentifyDashboardScreen()
+                TrackerEditDialog(
+                    tracker = null,
+                    onDismiss = {},
+                    onSave = { _, _, _, _, _ -> },
+                    onDelete = {}
+                )
             }
         }
-
-        val testText = "Gym tracker"
-        composeTestRule.onNodeWithTag("preview_label_input")
-            .assertExists()
-            .performTextReplacement(testText)
 
         composeTestRule.waitForIdle()
-        // Re-verify that changed state was preserved in input
-        composeTestRule.onNodeWithTag("preview_label_input").assertTextContains(testText)
+
+        // Verify standard picker buttons are clickable without issue
+        val emeraldTag = "color_button_emerald"
+        composeTestRule.onNodeWithTag(emeraldTag).assertExists().performClick()
     }
 
     @Test
-    fun testColorPickerInteractivity() {
+    fun testEditWidgetDialogRendersSuccessfully() {
         composeTestRule.setContent {
             MyApplicationTheme {
-                PercentifyDashboardScreen()
+                EditWidgetDialogScreen(
+                    appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID,
+                    onDismiss = {},
+                    onSaved = { _, _, _, _, _ -> }
+                )
             }
         }
-
-        // Test picking a custom color - Deep Blue
-        val colorTag = "color_button_deep_blue"
-        composeTestRule.onNodeWithTag(colorTag)
-            .assertExists()
-            .performClick()
 
         composeTestRule.waitForIdle()
-        // Main view remains healthy
-        composeTestRule.onNodeWithTag("widget_preview_card").assertExists()
-    }
 
-    @Test
-    fun testBackgroundSelectorExists() {
-        composeTestRule.setContent {
-            MyApplicationTheme {
-                PercentifyDashboardScreen()
-            }
-        }
-
-        // Verify select photo button is rendered successfully and interactive
-        composeTestRule.onNodeWithTag("select_photo_button")
-            .assertExists()
-            .assertHasClickAction()
+        // Verify that custom interactive wheel progress slider rendering is successful with unmerged tree check
+        composeTestRule.onNodeWithTag("value_wheel_slider", useUnmergedTree = true).assertExists()
     }
 }

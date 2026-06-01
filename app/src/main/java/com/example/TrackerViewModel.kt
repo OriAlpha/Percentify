@@ -32,7 +32,7 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val list = repository.allTrackers.first()
                 // Clean up the third default item (Financial Goal) if it exists from previous installations
-                list.find { it.label == "Financial Goal" && it.value == 85 }?.let { oldDefault ->
+                list.find { it.label == "Financial Goal" }?.let { oldDefault ->
                     repository.delete(oldDefault)
                 }
                 if (list.isEmpty()) {

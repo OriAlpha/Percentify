@@ -182,6 +182,56 @@ fun EditWidgetDialogScreen(
         isLoaded = true
     }
 
+    val scope = rememberCoroutineScope()
+
+    // Reactive Auto-Save triggered on any state alterations
+    LaunchedEffect(isLoaded, labelState, valueState, styleState, colorState, bgPathState) {
+        if (isLoaded) {
+            val finalLabel = labelState.ifBlank { "Progress" }
+            val finalValue = valueState.toInt()
+
+            // 1. Update database tracker if it matches the current label
+            val matchingTracker = databaseTrackers.find { it.label == finalLabel }
+            if (matchingTracker != null && (matchingTracker.value != finalValue || matchingTracker.style != styleState.name || matchingTracker.color != colorState.label || matchingTracker.bgPath != bgPathState)) {
+                try {
+                    val updated = matchingTracker.copy(
+                        value = finalValue,
+                        style = styleState.name,
+                        color = colorState.label,
+                        bgPath = bgPathState
+                    )
+                    AppDatabase.getDatabase(context).trackerDao().updateTracker(updated)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // 2. Update Glance AppWidget state in background
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                try {
+                    val manager = GlanceAppWidgetManager(context)
+                    val glanceId = manager.getGlanceIdBy(appWidgetId)
+                    updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                        prefs.toMutablePreferences().apply {
+                            this[WidgetStateKeys.LABEL] = finalLabel
+                            this[WidgetStateKeys.VALUE] = finalValue
+                            this[WidgetStateKeys.STYLE] = styleState.name
+                            this[WidgetStateKeys.COLOR] = colorState.label
+                            if (bgPathState != null) {
+                                this[WidgetStateKeys.BACKGROUND_URI] = bgPathState!!
+                            } else {
+                                remove(WidgetStateKeys.BACKGROUND_URI)
+                            }
+                        }
+                    }
+                    PercentifyWidget().update(context, glanceId)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
     // Material 3 Dialog styled overlay
     val interactionSource = remember { MutableInteractionSource() }
     Box(
@@ -788,17 +838,6 @@ fun EditWidgetDialogScreen(
                             horizontalArrangement = Arrangement.End,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            TextButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            ) {
-                                Text(
-                                    text = "Cancel",
-                                    color = Color(0xFFD0BCFF),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
                             Button(
                                 onClick = {
                                     onSaved(
@@ -816,7 +855,7 @@ fun EditWidgetDialogScreen(
                                 contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
                             ) {
                                 Text(
-                                    text = "Save",
+                                    text = "Done",
                                     color = if (colorState == WidgetColor.AMBER) Color.Black else Color.White,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                                 )
