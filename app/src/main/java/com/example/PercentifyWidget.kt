@@ -145,11 +145,13 @@ fun WidgetContent(
         ) {
             when (style) {
             WidgetStyle.WHEEL -> {
-                val wheelBitmap = WidgetBitmapRenderer.drawWheelProgress(
-                    percentage = value,
-                    hexColor = widgetColor.hex,
-                    label = label
-                )
+                val wheelBitmap = remember(value, widgetColor, label) {
+                    WidgetBitmapRenderer.drawWheelProgress(
+                        percentage = value,
+                        hexColor = widgetColor.hex,
+                        label = label
+                    )
+                }
                 Image(
                     provider = ImageProvider(wheelBitmap),
                     contentDescription = "Wheel Progress Tracker $value%",
@@ -252,12 +254,14 @@ fun WidgetContent(
                     modifier = GlanceModifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomEnd
                 ) {
-                    val circleBitmap = WidgetBitmapRenderer.drawStandaloneCircle(
-                        percentage = value,
-                        hexColor = widgetColor.hex,
-                        size = 110,
-                        isBgOnColor = false
-                    )
+                    val circleBitmap = remember(value, widgetColor) {
+                        WidgetBitmapRenderer.drawStandaloneCircle(
+                            percentage = value,
+                            hexColor = widgetColor.hex,
+                            size = 110,
+                            isBgOnColor = false
+                        )
+                    }
                     Image(
                         provider = ImageProvider(circleBitmap),
                         contentDescription = null,
@@ -297,12 +301,14 @@ fun WidgetContent(
                     modifier = GlanceModifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomEnd
                 ) {
-                    val circleBitmap = WidgetBitmapRenderer.drawStandaloneCircle(
-                        percentage = value,
-                        hexColor = widgetColor.hex,
-                        size = 110,
-                        isBgOnColor = true
-                    )
+                    val circleBitmap = remember(value, widgetColor) {
+                        WidgetBitmapRenderer.drawStandaloneCircle(
+                            percentage = value,
+                            hexColor = widgetColor.hex,
+                            size = 110,
+                            isBgOnColor = true
+                        )
+                    }
                     Image(
                         provider = ImageProvider(circleBitmap),
                         contentDescription = null,
