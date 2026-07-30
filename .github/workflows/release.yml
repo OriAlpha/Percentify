@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+      - 'V*'
   release:
     types: [published]
   workflow_dispatch:
@@ -46,13 +47,22 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
-          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: false
 
       - name: Make gradlew executable
         run: chmod +x gradlew
+
+      - name: Ensure .env file exists
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            touch .env
+          fi
 
       - name: Decode Keystore (Optional)
         if: ${{ secrets.KEYSTORE_BASE64 != '' }}
@@ -68,24 +78,38 @@ jobs:
         run: |
           ./gradlew assembleRelease assembleDebug --no-daemon
 
+      - name: Determine Release Metadata
+        id: release_info
+        run: |
+          TAG="${{ github.ref_name }}"
+          INPUT_TAG="${{ github.event.inputs.tag_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          fi
+          
+          TITLE="$TAG"
+          INPUT_TITLE="${{ github.event.inputs.release_title }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$INPUT_TITLE" ]; then
+            TITLE="$INPUT_TITLE"
+          fi
+
+          echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
+          echo "release_title=${TITLE}" >> $GITHUB_OUTPUT
+
       - name: Prepare APK Release Assets
         run: |
           mkdir -p release-assets
-          VERSION_TAG="${{ github.ref_name }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag_name }}" ]; then
-            VERSION_TAG="${{ inputs.tag_name }}"
-          fi
+          TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
           
-          # Copy Release APK if available, fallback to debug or built outputs
           if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
-            cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${VERSION_TAG}-Release.apk"
+            cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${TAG_NAME}-Release.apk"
             cp app/build/outputs/apk/release/app-release.apk "release-assets/percentify.apk"
           elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-            cp app/build/outputs/apk/release/app-release-unsigned.apk "release-assets/Percentify-${VERSION_TAG}-Release-unsigned.apk"
+            cp app/build/outputs/apk/release/app-release-unsigned.apk "release-assets/Percentify-${TAG_NAME}-Release-unsigned.apk"
           fi
 
           if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk "release-assets/Percentify-${VERSION_TAG}-Debug.apk"
+            cp app/build/outputs/apk/debug/app-debug.apk "release-assets/Percentify-${TAG_NAME}-Debug.apk"
           fi
 
           echo "Prepared APKs in release-assets:"
@@ -94,7 +118,7 @@ jobs:
       - name: Upload APKs to Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Percentify-APKs-${{ github.ref_name }}
+          name: Percentify-APKs-${{ steps.release_info.outputs.tag_name }}
           path: release-assets/*
           retention-days: 30
 
@@ -102,10 +126,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
-          tag_name: ${{ inputs.tag_name != '' && inputs.tag_name || github.ref_name }}
-          name: ${{ inputs.release_title != '' && inputs.release_title || (inputs.tag_name != '' && inputs.tag_name || github.ref_name) }}
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: ${{ steps.release_info.outputs.release_title }}
           generate_release_notes: true
-          draft: ${{ inputs.draft || false }}
-          prerelease: ${{ inputs.prerelease || false }}
+          draft: ${{ github.event.inputs.draft || false }}
+          prerelease: ${{ github.event.inputs.prerelease || false }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
