@@ -93,8 +93,20 @@ jobs:
             TITLE="$INPUT_TITLE"
           fi
 
+          DRAFT="false"
+          if [ "${{ github.event.inputs.draft }}" = "true" ]; then
+            DRAFT="true"
+          fi
+
+          PRERELEASE="false"
+          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            PRERELEASE="true"
+          fi
+
           echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
           echo "release_title=${TITLE}" >> $GITHUB_OUTPUT
+          echo "draft=${DRAFT}" >> $GITHUB_OUTPUT
+          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
 
       - name: Prepare APK Release Assets
         run: |
@@ -129,7 +141,7 @@ jobs:
           tag_name: ${{ steps.release_info.outputs.tag_name }}
           name: ${{ steps.release_info.outputs.release_title }}
           generate_release_notes: true
-          draft: ${{ github.event.inputs.draft || false }}
-          prerelease: ${{ github.event.inputs.prerelease || false }}
+          draft: ${{ steps.release_info.outputs.draft == 'true' }}
+          prerelease: ${{ steps.release_info.outputs.prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
