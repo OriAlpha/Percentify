@@ -58,9 +58,11 @@ jobs:
           fi
 
       - name: Decode Keystore (Optional)
-        if: secrets.KEYSTORE_BASE64 != ''
+        env:
+          ENCODED_KEY: ${{ secrets.KEYSTORE_BASE64 }}
+        if: env.ENCODED_KEY != ''
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
+          echo "$ENCODED_KEY" | base64 -d > my-upload-key.jks
 
       - name: Build APKs with Gradle
         env:
