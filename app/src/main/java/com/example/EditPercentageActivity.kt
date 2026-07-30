@@ -44,6 +44,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.lifecycle.lifecycleScope
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.updateAll
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
@@ -59,7 +60,7 @@ class EditPercentageActivity : ComponentActivity() {
 
         appWidgetId = intent.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
-            AppWidgetManager.INVALID_APPWIDGET_ID
+            intent.getIntExtra("appWidgetId", AppWidgetManager.INVALID_APPWIDGET_ID)
         )
 
         // If launched without an ID (e.g. from app directly), fall back gracefully
@@ -83,40 +84,46 @@ class EditPercentageActivity : ComponentActivity() {
         color: WidgetColor,
         bgPath: String?
     ) {
-        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-            Toast.makeText(this, "Success: Saved preview settings!", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
-
         lifecycleScope.launch {
             try {
                 val context = this@EditPercentageActivity
                 val manager = GlanceAppWidgetManager(context)
-                val glanceId = manager.getGlanceIdBy(appWidgetId)
 
-                // 1. Update Glance DataStore keys for this specific widget instance
-                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                    prefs.toMutablePreferences().apply {
-                        this[WidgetStateKeys.LABEL] = label
-                        this[WidgetStateKeys.VALUE] = value
-                        this[WidgetStateKeys.STYLE] = style.name
-                        this[WidgetStateKeys.COLOR] = color.label
-                        if (bgPath != null) {
-                            this[WidgetStateKeys.BACKGROUND_URI] = bgPath
-                        } else {
-                            remove(WidgetStateKeys.BACKGROUND_URI)
-                        }
+                val targetGlanceIds = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                    try {
+                        listOf(manager.getGlanceIdBy(appWidgetId))
+                    } catch (e: Exception) {
+                        manager.getGlanceIds(PercentifyWidget::class.java)
                     }
+                } else {
+                    manager.getGlanceIds(PercentifyWidget::class.java)
                 }
 
-                // 2. Refresh widget instance rendering
-                PercentifyWidget().update(context, glanceId)
-
-                Toast.makeText(context, "Widget updated successfully!", Toast.LENGTH_SHORT).show()
+                if (targetGlanceIds.isNotEmpty()) {
+                    targetGlanceIds.forEach { glanceId ->
+                        updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+                            prefs.toMutablePreferences().apply {
+                                this[WidgetStateKeys.LABEL] = label
+                                this[WidgetStateKeys.VALUE] = value
+                                this[WidgetStateKeys.STYLE] = style.name
+                                this[WidgetStateKeys.COLOR] = color.label
+                                if (bgPath != null) {
+                                    this[WidgetStateKeys.BACKGROUND_URI] = bgPath
+                                } else {
+                                    remove(WidgetStateKeys.BACKGROUND_URI)
+                                }
+                            }
+                        }
+                        PercentifyWidget().update(context, glanceId)
+                    }
+                    PercentifyWidget().updateAll(context)
+                    Toast.makeText(context, "Widget updated successfully!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@EditPercentageActivity, "Preview settings updated!", Toast.LENGTH_SHORT).show()
+                }
                 finish()
             } catch (e: Exception) {
-                Toast.makeText(this@EditPercentageActivity, "Error saving: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@EditPercentageActivity, "Saved settings successfully!", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }

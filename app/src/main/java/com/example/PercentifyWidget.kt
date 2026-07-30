@@ -85,8 +85,26 @@ fun WidgetContent(
     val bgBitmap = remember(bgUri) {
         if (!bgUri.isNullOrEmpty()) {
             try {
-                android.graphics.BitmapFactory.decodeFile(bgUri)
-            } catch (e: Exception) {
+                // Decode safely bounded to 300x300 to avoid RemoteViews IPC limit (>1.5MB)
+                val optionsSize = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                android.graphics.BitmapFactory.decodeFile(bgUri, optionsSize)
+
+                var inSampleSize = 1
+                val maxDim = 300
+                if (optionsSize.outHeight > maxDim || optionsSize.outWidth > maxDim) {
+                    val halfHeight = optionsSize.outHeight / 2
+                    val halfWidth = optionsSize.outWidth / 2
+                    while ((halfHeight / inSampleSize) >= maxDim && (halfWidth / inSampleSize) >= maxDim) {
+                        inSampleSize *= 2
+                    }
+                }
+                val optionsDecode = android.graphics.BitmapFactory.Options().apply {
+                    this.inSampleSize = inSampleSize
+                }
+                android.graphics.BitmapFactory.decodeFile(bgUri, optionsDecode)
+            } catch (e: Throwable) {
                 null
             }
         } else null
