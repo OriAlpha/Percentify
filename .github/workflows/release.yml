@@ -95,14 +95,14 @@ jobs:
           TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
           
           if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+            cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${TAG_NAME}.apk"
             cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${TAG_NAME}-Release.apk"
-            cp app/build/outputs/apk/release/app-release.apk "release-assets/percentify.apk"
           elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
             cp app/build/outputs/apk/release/app-release-unsigned.apk "release-assets/Percentify-${TAG_NAME}-Release-unsigned.apk"
           fi
 
           if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk "release-assets/Percentify-${TAG_NAME}-Debug.apk"
+            cp app/build/outputs/apk/debug/app-debug.apk "release-assets/Percentify-${TAG_NAME}.apk"
           fi
 
           echo "Prepared APKs in release-assets:"
