@@ -1,0 +1,111 @@
+name: Build APK & Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release (e.g. v1.0.0)'
+        required: false
+        default: ''
+      release_title:
+        description: 'Release title'
+        required: false
+        default: ''
+      draft:
+        description: 'Create draft release'
+        type: boolean
+        required: false
+        default: false
+      prerelease:
+        description: 'Mark as prerelease'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build APK & Upload Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Decode Keystore (Optional)
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
+
+      - name: Build APKs with Gradle
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease assembleDebug --no-daemon
+
+      - name: Prepare APK Release Assets
+        run: |
+          mkdir -p release-assets
+          VERSION_TAG="${{ github.ref_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag_name }}" ]; then
+            VERSION_TAG="${{ inputs.tag_name }}"
+          fi
+          
+          # Copy Release APK if available, fallback to debug or built outputs
+          if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+            cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${VERSION_TAG}-Release.apk"
+            cp app/build/outputs/apk/release/app-release.apk "release-assets/percentify.apk"
+          elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            cp app/build/outputs/apk/release/app-release-unsigned.apk "release-assets/Percentify-${VERSION_TAG}-Release-unsigned.apk"
+          fi
+
+          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk "release-assets/Percentify-${VERSION_TAG}-Debug.apk"
+          fi
+
+          echo "Prepared APKs in release-assets:"
+          ls -la release-assets/
+
+      - name: Upload APKs to Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Percentify-APKs-${{ github.ref_name }}
+          path: release-assets/*
+          retention-days: 30
+
+      - name: Create & Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          tag_name: ${{ inputs.tag_name != '' && inputs.tag_name || github.ref_name }}
+          name: ${{ inputs.release_title != '' && inputs.release_title || (inputs.tag_name != '' && inputs.tag_name || github.ref_name) }}
+          generate_release_notes: true
+          draft: ${{ inputs.draft || false }}
+          prerelease: ${{ inputs.prerelease || false }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,13 +14,17 @@ A beautiful, Material 3-compliant interactive progress and percentage tracker fo
 
 ---
 
-## 🚀 GitHub Actions CI Setup Included
+## 🚀 GitHub Actions CI & Auto-Release Setup
 
-This project contains a fully configured GitHub Actions workflow (`.github/workflows/build_apk.yml`) that automatically:
-1. Triggers on pushes or pull requests to the main branches.
-2. Formats and caches project gradle configurations.
-3. Automatically compiles the application and signs a debug release installer package.
-4. Uploads the generated `.apk` file directly to your GitHub Action artifacts for single-click downloads.
+This project includes automated GitHub Actions workflows:
+
+1. **Auto Build & GitHub Release** ([release.yml](file:///D:/Projects/Percentify/.github/workflows/release.yml)):
+   - **Triggers**: Pushing a tag (`git tag v1.0.0 && git push origin v1.0.0`), publishing a release on GitHub, or running manually via `Actions -> Build APK & Create Release -> Run workflow`.
+   - **Behavior**: Compiles the Android APKs (Release & Debug), saves them to Actions artifacts, and automatically creates/updates a GitHub Release with the `.apk` files attached!
+
+2. **CI Build & Artifact Upload** ([build_apk.yml](file:///D:/Projects/Percentify/.github/workflows/build_apk.yml)):
+   - **Triggers**: Every push or pull request to `main`/`master`.
+   - **Behavior**: Verifies project compilation and attaches the generated debug `.apk` file to the GitHub Actions run summary.
 
 ---
 
