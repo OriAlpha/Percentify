@@ -94,14 +94,11 @@ jobs:
           mkdir -p release-assets
           TAG_NAME="${{ steps.release_info.outputs.tag_name }}"
           
+          # If a signed release APK was created, use it as the main APK
           if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
             cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${TAG_NAME}.apk"
-            cp app/build/outputs/apk/release/app-release.apk "release-assets/Percentify-${TAG_NAME}-Release.apk"
-          elif [ -f "app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
-            cp app/build/outputs/apk/release/app-release-unsigned.apk "release-assets/Percentify-${TAG_NAME}-Release-unsigned.apk"
-          fi
-
-          if [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+          # Otherwise fallback to the ready-to-install signed debug build
+          elif [ -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
             cp app/build/outputs/apk/debug/app-debug.apk "release-assets/Percentify-${TAG_NAME}.apk"
           fi
 
