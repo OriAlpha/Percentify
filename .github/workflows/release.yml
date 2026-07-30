@@ -57,6 +57,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+          validate-wrappers: false
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -87,19 +88,29 @@ jobs:
         id: release_info
         run: |
           TAG="${{ github.ref_name }}"
-          INPUT_TAG="${{ github.event.inputs.tag_name }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
-            TAG="$INPUT_TAG"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
           fi
           
           TITLE="$TAG"
-          INPUT_TITLE="${{ github.event.inputs.release_title }}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$INPUT_TITLE" ]; then
-            TITLE="$INPUT_TITLE"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.release_title }}" ]; then
+            TITLE="${{ github.event.inputs.release_title }}"
+          fi
+
+          DRAFT="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.draft }}" = "true" ]; then
+            DRAFT="true"
+          fi
+
+          PRERELEASE="false"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+            PRERELEASE="true"
           fi
 
           echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
           echo "release_title=${TITLE}" >> $GITHUB_OUTPUT
+          echo "draft=${DRAFT}" >> $GITHUB_OUTPUT
+          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
 
       - name: Prepare APK Release Assets
         run: |
@@ -135,7 +146,7 @@ jobs:
           tag_name: ${{ steps.release_info.outputs.tag_name }}
           name: ${{ steps.release_info.outputs.release_title }}
           generate_release_notes: true
-          draft: ${{ github.event.inputs.draft == true }}
-          prerelease: ${{ github.event.inputs.prerelease == true }}
+          draft: ${{ steps.release_info.outputs.draft == 'true' }}
+          prerelease: ${{ steps.release_info.outputs.prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
