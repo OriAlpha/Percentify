@@ -2,6 +2,9 @@ name: Build APK & Create Release
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
       - 'V*'
@@ -12,20 +15,22 @@ on:
       tag_name:
         description: 'Tag name for release (e.g. v1.0.0)'
         required: false
+        type: string
         default: ''
       release_title:
         description: 'Release title'
         required: false
+        type: string
         default: ''
       draft:
         description: 'Create draft release'
-        type: boolean
         required: false
+        type: boolean
         default: false
       prerelease:
         description: 'Mark as prerelease'
-        type: boolean
         required: false
+        type: boolean
         default: false
 
 permissions:
@@ -51,7 +56,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          validate-wrappers: false
+          gradle-version: '9.3.1'
 
       - name: Make gradlew executable
         run: chmod +x gradlew
@@ -76,7 +81,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew assembleRelease assembleDebug --no-daemon
+          gradle assembleRelease assembleDebug --no-daemon
 
       - name: Determine Release Metadata
         id: release_info
@@ -93,20 +98,8 @@ jobs:
             TITLE="$INPUT_TITLE"
           fi
 
-          DRAFT="false"
-          if [ "${{ github.event.inputs.draft }}" = "true" ]; then
-            DRAFT="true"
-          fi
-
-          PRERELEASE="false"
-          if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
-            PRERELEASE="true"
-          fi
-
           echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
           echo "release_title=${TITLE}" >> $GITHUB_OUTPUT
-          echo "draft=${DRAFT}" >> $GITHUB_OUTPUT
-          echo "prerelease=${PRERELEASE}" >> $GITHUB_OUTPUT
 
       - name: Prepare APK Release Assets
         run: |
@@ -135,13 +128,14 @@ jobs:
           retention-days: 30
 
       - name: Create & Upload to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/V') || github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
           tag_name: ${{ steps.release_info.outputs.tag_name }}
           name: ${{ steps.release_info.outputs.release_title }}
           generate_release_notes: true
-          draft: ${{ steps.release_info.outputs.draft == 'true' }}
-          prerelease: ${{ steps.release_info.outputs.prerelease == 'true' }}
+          draft: ${{ github.event.inputs.draft == true }}
+          prerelease: ${{ github.event.inputs.prerelease == true }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
