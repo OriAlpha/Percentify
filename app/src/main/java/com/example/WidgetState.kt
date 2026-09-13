@@ -13,12 +13,13 @@ enum class WidgetStyle {
 class WidgetColor(val label: String, val hex: String, val composeColor: Long) {
     companion object {
         val EMERALD = WidgetColor("Emerald", "#10B981", 0xFF10B981)
+        val BRONZE = WidgetColor("Bronze", "#C46238", 0xFFC46238)
         val AMETHYST = WidgetColor("Amethyst", "#8B5CF6", 0xFF8B5CF6)
         val AMBER = WidgetColor("Amber", "#F59E0B", 0xFFF59E0B)
         val CORAL = WidgetColor("Coral", "#F43F5E", 0xFFF43F5E)
         val DEEP_BLUE = WidgetColor("Deep Blue", "#3B82F6", 0xFF3B82F6)
 
-        val entries = listOf(EMERALD, AMETHYST, AMBER, CORAL, DEEP_BLUE)
+        val entries = listOf(EMERALD, BRONZE, AMETHYST, AMBER, CORAL, DEEP_BLUE)
 
         fun fromName(name: String?): WidgetColor {
             if (name == null || name.isBlank()) return EMERALD

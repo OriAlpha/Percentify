@@ -1001,6 +1001,7 @@ fun TrackerEditDialog(
                     val presetColors = remember {
                         listOf(
                             WidgetColor.EMERALD,
+                            WidgetColor.BRONZE,
                             WidgetColor.AMETHYST,
                             WidgetColor.AMBER,
                             WidgetColor.CORAL

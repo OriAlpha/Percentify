@@ -17,6 +17,23 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
 
     val allTrackers: StateFlow<List<Tracker>>
 
+    private fun getCupraBackgroundPath(context: Context): String? {
+        return try {
+            val file = java.io.File(context.filesDir, "bg_cupra.jpg")
+            if (!file.exists()) {
+                context.assets.open("bg_cupra.jpg").use { input ->
+                    java.io.FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     init {
         val database = AppDatabase.getDatabase(application)
         repository = TrackerRepository(database.trackerDao())
@@ -32,6 +49,37 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             try {
                 val prefs = application.getSharedPreferences("percentify_prefs", Context.MODE_PRIVATE)
+                val cupraBgPath = getCupraBackgroundPath(application)
+                
+                // Migrate or set up default items
+                val hasCupraDefault = prefs.getBoolean("has_cupra_default_v2", false)
+                if (!hasCupraDefault) {
+                    val list = repository.allTrackers.first()
+                    val oldFitness = list.find { it.label == "Fitness Reps" }
+                    if (oldFitness != null) {
+                        repository.update(
+                            oldFitness.copy(
+                                label = "Cupra",
+                                value = 85,
+                                style = WidgetStyle.SOLID_FILL.name,
+                                color = WidgetColor.BRONZE.label,
+                                bgPath = cupraBgPath
+                            )
+                        )
+                    } else if (list.none { it.label == "Cupra" } && !prefs.getBoolean("has_prepopulated_defaults", false)) {
+                        repository.insert(
+                            Tracker(
+                                label = "Cupra",
+                                value = 85,
+                                style = WidgetStyle.SOLID_FILL.name,
+                                color = WidgetColor.BRONZE.label,
+                                bgPath = cupraBgPath
+                            )
+                        )
+                    }
+                    prefs.edit().putBoolean("has_cupra_default_v2", true).apply()
+                }
+
                 val hasPrepopulated = prefs.getBoolean("has_prepopulated_defaults", false)
                 if (!hasPrepopulated) {
                     val list = repository.allTrackers.first()
@@ -47,11 +95,11 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
                         )
                         repository.insert(
                             Tracker(
-                                label = "Fitness Reps",
-                                value = 40,
-                                style = WidgetStyle.CORNER_CIRCLE.name,
-                                color = WidgetColor.CORAL.label,
-                                bgPath = null
+                                label = "Cupra",
+                                value = 85,
+                                style = WidgetStyle.SOLID_FILL.name,
+                                color = WidgetColor.BRONZE.label,
+                                bgPath = cupraBgPath
                             )
                         )
                     }
