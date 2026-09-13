@@ -93,10 +93,10 @@ class EditPercentageActivity : ComponentActivity() {
                     try {
                         listOf(manager.getGlanceIdBy(appWidgetId))
                     } catch (e: Exception) {
-                        manager.getGlanceIds(PercentifyWidget::class.java)
+                        emptyList()
                     }
                 } else {
-                    manager.getGlanceIds(PercentifyWidget::class.java)
+                    emptyList()
                 }
 
                 if (targetGlanceIds.isNotEmpty()) {
@@ -116,7 +116,6 @@ class EditPercentageActivity : ComponentActivity() {
                         }
                         PercentifyWidget().update(context, glanceId)
                     }
-                    PercentifyWidget().updateAll(context)
                     Toast.makeText(context, "Widget updated successfully!", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this@EditPercentageActivity, "Preview settings updated!", Toast.LENGTH_SHORT).show()
@@ -191,9 +190,10 @@ fun EditWidgetDialogScreen(
 
     val scope = rememberCoroutineScope()
 
-    // Reactive Auto-Save triggered on any state alterations
+    // Reactive Auto-Save triggered on any state alterations with debounce to avoid disk/IPC flooding
     LaunchedEffect(isLoaded, labelState, valueState, styleState, colorState, bgPathState) {
         if (isLoaded) {
+            kotlinx.coroutines.delay(150)
             val finalLabel = labelState.ifBlank { "Progress" }
             val finalValue = valueState.toInt()
 
@@ -405,11 +405,13 @@ fun EditWidgetDialogScreen(
                                     onValueChange = { input ->
                                         val cleaned = input.filter { it.isDigit() }
                                         if (cleaned.length <= 3) {
-                                            percentInput = cleaned
                                             val nv = cleaned.toIntOrNull()
                                             if (nv != null) {
-                                                valueState = nv.coerceIn(0, 100).toFloat()
+                                                val clamped = nv.coerceIn(0, 100)
+                                                valueState = clamped.toFloat()
+                                                percentInput = if (nv > 100) "100" else cleaned
                                             } else if (cleaned.isEmpty()) {
+                                                percentInput = ""
                                                 valueState = 0f
                                             }
                                         }

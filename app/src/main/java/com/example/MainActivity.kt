@@ -53,6 +53,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.getAppWidgetState
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.appwidget.updateAll
 import com.example.ui.theme.MyApplicationTheme
 
@@ -136,9 +140,36 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
     var trackerToEdit by remember { mutableStateOf<Tracker?>(null) }
 
     // Dynamic Glance update triggering helper using compose coroutines
-    val triggerWidgetUpdate = {
+    val triggerWidgetUpdate = { targetTracker: Tracker? ->
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
+                if (targetTracker != null) {
+                    val appContext = context.applicationContext
+                    val manager = GlanceAppWidgetManager(appContext)
+                    val glanceIds = manager.getGlanceIds(PercentifyWidget::class.java)
+                    glanceIds.forEach { glanceId ->
+                        try {
+                            val prefs = getAppWidgetState(appContext, PreferencesGlanceStateDefinition, glanceId)
+                            if (prefs[WidgetStateKeys.LABEL] == targetTracker.label) {
+                                updateAppWidgetState(appContext, PreferencesGlanceStateDefinition, glanceId) { curPrefs ->
+                                    curPrefs.toMutablePreferences().apply {
+                                        this[WidgetStateKeys.VALUE] = targetTracker.value
+                                        this[WidgetStateKeys.STYLE] = targetTracker.style
+                                        this[WidgetStateKeys.COLOR] = targetTracker.color
+                                        if (targetTracker.bgPath != null) {
+                                            this[WidgetStateKeys.BACKGROUND_URI] = targetTracker.bgPath
+                                        } else {
+                                            remove(WidgetStateKeys.BACKGROUND_URI)
+                                        }
+                                    }
+                                }
+                                PercentifyWidget().update(appContext, glanceId)
+                            }
+                        } catch (e: Throwable) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
                 PercentifyWidget().updateAll(context.applicationContext)
             } catch (e: Throwable) {
                 e.printStackTrace()
@@ -267,15 +298,17 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                                     onEditClicked = { trackerToEdit = tracker },
                                     onIncrement = {
                                         val nv = (tracker.value + 5).coerceIn(0, 100)
+                                        val updated = tracker.copy(value = nv)
                                         trackerViewModel.updateTrackerValue(tracker, nv)
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        triggerWidgetUpdate()
+                                        triggerWidgetUpdate(updated)
                                     },
                                     onDecrement = {
                                         val nv = (tracker.value - 5).coerceIn(0, 100)
+                                        val updated = tracker.copy(value = nv)
                                         trackerViewModel.updateTrackerValue(tracker, nv)
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        triggerWidgetUpdate()
+                                        triggerWidgetUpdate(updated)
                                     }
                                 )
                             }
@@ -338,7 +371,8 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                 trackerViewModel.addTracker(label, value, style, color, bgPath)
                 showAddDialog = false
                 Toast.makeText(context, "Goal added to dashboard!", Toast.LENGTH_SHORT).show()
-                triggerWidgetUpdate()
+                val newTracker = Tracker(label = label, value = value, style = style.name, color = color.label, bgPath = bgPath)
+                triggerWidgetUpdate(newTracker)
             },
             onDelete = {}
         )
@@ -360,13 +394,13 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                 trackerViewModel.updateTracker(updatedTracker)
                 trackerToEdit = null
                 Toast.makeText(context, "Goal settings updated!", Toast.LENGTH_SHORT).show()
-                triggerWidgetUpdate()
+                triggerWidgetUpdate(updatedTracker)
             },
             onDelete = {
                 trackerViewModel.deleteTracker(item)
                 trackerToEdit = null
                 Toast.makeText(context, "Goal deleted", Toast.LENGTH_SHORT).show()
-                triggerWidgetUpdate()
+                triggerWidgetUpdate(null)
             }
         )
     }
@@ -879,11 +913,13 @@ fun TrackerEditDialog(
                             onValueChange = { input ->
                                 val cleaned = input.filter { it.isDigit() }
                                 if (cleaned.length <= 3) {
-                                    currentTextValue = cleaned
                                     val nv = cleaned.toIntOrNull()
                                     if (nv != null) {
-                                        valueState = nv.coerceIn(0, 100).toFloat()
+                                        val clamped = nv.coerceIn(0, 100)
+                                        valueState = clamped.toFloat()
+                                        currentTextValue = if (nv > 100) "100" else cleaned
                                     } else if (cleaned.isEmpty()) {
+                                        currentTextValue = ""
                                         valueState = 0f
                                     }
                                 }
@@ -1163,7 +1199,7 @@ fun TrackerEditDialog(
                         contract = ActivityResultContracts.GetContent()
                     ) { uri ->
                         if (uri != null) {
-                            val idSuffix = tracker?.id ?: "new"
+                            val idSuffix = tracker?.id?.toString() ?: "${System.currentTimeMillis()}"
                             val path = copyUriToInternalStorage(context, uri, "bg_tracker_${idSuffix}.jpg")
                             if (path != null) {
                                 bgPathState = path
