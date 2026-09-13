@@ -11,6 +11,7 @@ object WidgetBitmapRenderer {
         val size = 200
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        val clamped = percentage.coerceIn(0, 100)
 
         // Parse chosen color
         val baseColor = try {
@@ -49,7 +50,7 @@ object WidgetBitmapRenderer {
             val cosVal = Math.cos(angleRad).toFloat()
             val sinVal = Math.sin(angleRad).toFloat()
 
-            val isHighlighted = i < (percentage / 100f) * numTicks
+            val isHighlighted = i < (clamped / 100f) * numTicks
             val paint = if (isHighlighted) activePaint else inactivePaint
 
             val startX = centerX + innerRadius * cosVal
@@ -73,7 +74,7 @@ object WidgetBitmapRenderer {
         val hasLabel = !label.isNullOrBlank()
         val numY = if (hasLabel) (size / 2f) + 8f else (size / 2f) + 16f
 
-        canvas.drawText("$percentage%", size / 2f, numY, numPaint)
+        canvas.drawText("$clamped%", size / 2f, numY, numPaint)
 
         if (hasLabel) {
             val labelPaint = Paint().apply {
@@ -95,6 +96,7 @@ object WidgetBitmapRenderer {
     fun drawStandaloneCircle(percentage: Int, hexColor: String, strokeWidth: Float = 12f, size: Int = 120, isBgOnColor: Boolean = false): Bitmap {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        val clamped = percentage.coerceIn(0, 100)
 
         val baseColor = try {
             android.graphics.Color.parseColor(hexColor)
@@ -123,8 +125,10 @@ object WidgetBitmapRenderer {
         val rect = RectF(margin, margin, size - margin, size - margin)
 
         canvas.drawArc(rect, 0f, 360f, false, bgPaint)
-        val sweepAngle = (percentage / 100f) * 360f
-        canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
+        if (clamped > 0) {
+            val sweepAngle = (clamped / 100f) * 360f
+            canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
+        }
 
         return bitmap
     }
@@ -133,6 +137,7 @@ object WidgetBitmapRenderer {
         val size = 200
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
+        val clamped = percentage.coerceIn(0, 100)
 
         val baseColor = try {
             android.graphics.Color.parseColor(hexColor)
@@ -161,8 +166,10 @@ object WidgetBitmapRenderer {
         val rect = RectF(margin, margin, size - margin, size - margin)
 
         canvas.drawArc(rect, 0f, 360f, false, bgRingPaint)
-        val sweepAngle = (percentage / 100f) * 360f
-        canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
+        if (clamped > 0) {
+            val sweepAngle = (clamped / 100f) * 360f
+            canvas.drawArc(rect, -90f, sweepAngle, false, progressPaint)
+        }
 
         val numPaint = Paint().apply {
             isAntiAlias = true
@@ -173,7 +180,7 @@ object WidgetBitmapRenderer {
         }
 
         val numY = (size / 2f) + 16f
-        canvas.drawText("$percentage%", size / 2f, numY, numPaint)
+        canvas.drawText("$clamped%", size / 2f, numY, numPaint)
 
         if (!label.isNullOrBlank()) {
             val labelPaint = Paint().apply {

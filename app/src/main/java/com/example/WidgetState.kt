@@ -91,46 +91,46 @@ fun copyUriToInternalStorage(context: android.content.Context, uri: android.net.
             val maxDimension = 300
             var inSampleSize = 1
             if (optionsSize.outHeight > maxDimension || optionsSize.outWidth > maxDimension) {
-                val halfHeight = optionsSize.outHeight / 2
-                val halfWidth = optionsSize.outWidth / 2
-                while ((halfHeight / inSampleSize) >= maxDimension && (halfWidth / inSampleSize) >= maxDimension) {
+                while ((optionsSize.outHeight / inSampleSize) > maxDimension || (optionsSize.outWidth / inSampleSize) > maxDimension) {
                     inSampleSize *= 2
                 }
             }
 
             // 2. Decode the downscaled bitmap
             val optionsDecode = android.graphics.BitmapFactory.Options().apply {
-                inSampleSize = inSampleSize
+                this.inSampleSize = inSampleSize
             }
             val decodedBitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, optionsDecode)
                 ?: return null
 
             // 3. Further scale precisely if needed
-            val finalBitmap = if (decodedBitmap.width > maxDimension || decodedBitmap.height > maxDimension) {
-                val ratio = decodedBitmap.width.toFloat() / decodedBitmap.height.toFloat()
-                val (newWidth, newHeight) = if (ratio > 1f) {
-                    maxDimension to (maxDimension / ratio).toInt()
+            var finalBitmap: android.graphics.Bitmap? = null
+            try {
+                finalBitmap = if (decodedBitmap.width > maxDimension || decodedBitmap.height > maxDimension) {
+                    val ratio = decodedBitmap.width.toFloat() / decodedBitmap.height.toFloat()
+                    val (newWidth, newHeight) = if (ratio > 1f) {
+                        maxDimension to (maxDimension / ratio).toInt().coerceAtLeast(1)
+                    } else {
+                        (maxDimension * ratio).toInt().coerceAtLeast(1) to maxDimension
+                    }
+                    android.graphics.Bitmap.createScaledBitmap(decodedBitmap, newWidth, newHeight, true)
                 } else {
-                    (maxDimension * ratio).toInt() to maxDimension
+                    decodedBitmap
                 }
-                android.graphics.Bitmap.createScaledBitmap(decodedBitmap, newWidth, newHeight, true)
-            } else {
-                decodedBitmap
-            }
 
-            // 4. Save highly compressed JPEG to file
-            val file = java.io.File(context.filesDir, fileName)
-            java.io.FileOutputStream(file).use { outputStream ->
-                finalBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
-            }
+                // 4. Save highly compressed JPEG to file
+                val file = java.io.File(context.filesDir, fileName)
+                java.io.FileOutputStream(file).use { outputStream ->
+                    finalBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, outputStream)
+                }
 
-            // Recycle native bitmap allocations immediately
-            if (finalBitmap != decodedBitmap) {
-                finalBitmap.recycle()
+                file.absolutePath
+            } finally {
+                if (finalBitmap != null && finalBitmap != decodedBitmap) {
+                    finalBitmap.recycle()
+                }
+                decodedBitmap.recycle()
             }
-            decodedBitmap.recycle()
-
-            file.absolutePath
         }
     } catch (e: Exception) {
         e.printStackTrace()

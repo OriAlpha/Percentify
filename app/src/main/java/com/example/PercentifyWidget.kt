@@ -91,19 +91,32 @@ fun WidgetContent(
                 }
                 android.graphics.BitmapFactory.decodeFile(bgUri, optionsSize)
 
-                var inSampleSize = 1
                 val maxDim = 300
+                var inSampleSize = 1
                 if (optionsSize.outHeight > maxDim || optionsSize.outWidth > maxDim) {
-                    val halfHeight = optionsSize.outHeight / 2
-                    val halfWidth = optionsSize.outWidth / 2
-                    while ((halfHeight / inSampleSize) >= maxDim && (halfWidth / inSampleSize) >= maxDim) {
+                    while ((optionsSize.outHeight / inSampleSize) > maxDim || (optionsSize.outWidth / inSampleSize) > maxDim) {
                         inSampleSize *= 2
                     }
                 }
                 val optionsDecode = android.graphics.BitmapFactory.Options().apply {
                     this.inSampleSize = inSampleSize
                 }
-                android.graphics.BitmapFactory.decodeFile(bgUri, optionsDecode)
+                val decoded = android.graphics.BitmapFactory.decodeFile(bgUri, optionsDecode)
+                if (decoded != null && (decoded.width > maxDim || decoded.height > maxDim)) {
+                    val ratio = decoded.width.toFloat() / decoded.height.toFloat()
+                    val (newWidth, newHeight) = if (ratio > 1f) {
+                        maxDim to (maxDim / ratio).toInt().coerceAtLeast(1)
+                    } else {
+                        (maxDim * ratio).toInt().coerceAtLeast(1) to maxDim
+                    }
+                    val scaled = android.graphics.Bitmap.createScaledBitmap(decoded, newWidth, newHeight, true)
+                    if (scaled != decoded) {
+                        decoded.recycle()
+                    }
+                    scaled
+                } else {
+                    decoded
+                }
             } catch (e: Throwable) {
                 null
             }
@@ -173,7 +186,8 @@ fun WidgetContent(
                 )
             }
             WidgetStyle.LINEAR -> {
-                val textColor = if (style == WidgetStyle.SOLID_FILL && widgetColor == WidgetColor.AMBER) Color.Black else Color.White
+                val clampedProgress = (value.coerceIn(0, 100) / 100f)
+                val primaryColor = Color(widgetColor.composeColor)
                 Column(
                     modifier = GlanceModifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -187,7 +201,7 @@ fun WidgetContent(
                         Text(
                             text = if (label.length > 15) label.take(13) + ".." else label,
                             style = TextStyle(
-                                color = ColorProvider(textColor),
+                                color = ColorProvider(Color.White),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             ),
@@ -196,7 +210,7 @@ fun WidgetContent(
                         Text(
                             text = "$value%",
                             style = TextStyle(
-                                color = ColorProvider(if (style == WidgetStyle.SOLID_FILL) textColor else Color(widgetColor.composeColor)),
+                                color = ColorProvider(primaryColor),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
                             )
@@ -205,10 +219,10 @@ fun WidgetContent(
                     Spacer(modifier = GlanceModifier.height(8.dp))
                     
                     LinearProgressIndicator(
-                        progress = value / 100f,
+                        progress = clampedProgress,
                         modifier = GlanceModifier.fillMaxWidth().height(10.dp).cornerRadius(5.dp),
-                        color = ColorProvider(if (style == WidgetStyle.SOLID_FILL && widgetColor == WidgetColor.AMBER) Color.Black else Color(widgetColor.composeColor)),
-                        backgroundColor = ColorProvider(if (style == WidgetStyle.SOLID_FILL) Color.Black.copy(alpha = 0.2f) else Color(0xFF49454F))
+                        color = ColorProvider(primaryColor),
+                        backgroundColor = ColorProvider(Color(0xFF49454F))
                     )
                 }
             }

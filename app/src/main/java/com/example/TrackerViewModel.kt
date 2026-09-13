@@ -1,6 +1,7 @@
 package com.example
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -27,33 +28,34 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
                 initialValue = emptyList()
             )
 
-        // Prepopulate database with default items if empty to help showcase UX on first launch
+        // Prepopulate database with default items only once on first run
         viewModelScope.launch {
             try {
-                val list = repository.allTrackers.first()
-                // Clean up the third default item (Financial Goal) if it exists from previous installations
-                list.find { it.label == "Financial Goal" }?.let { oldDefault ->
-                    repository.delete(oldDefault)
-                }
-                if (list.isEmpty()) {
-                    repository.insert(
-                        Tracker(
-                            label = "Daily Water Intake",
-                            value = 75,
-                            style = WidgetStyle.WHEEL.name,
-                            color = WidgetColor.EMERALD.label,
-                            bgPath = null
+                val prefs = application.getSharedPreferences("percentify_prefs", Context.MODE_PRIVATE)
+                val hasPrepopulated = prefs.getBoolean("has_prepopulated_defaults", false)
+                if (!hasPrepopulated) {
+                    val list = repository.allTrackers.first()
+                    if (list.isEmpty()) {
+                        repository.insert(
+                            Tracker(
+                                label = "Daily Water Intake",
+                                value = 75,
+                                style = WidgetStyle.WHEEL.name,
+                                color = WidgetColor.EMERALD.label,
+                                bgPath = null
+                            )
                         )
-                    )
-                    repository.insert(
-                        Tracker(
-                            label = "Fitness Reps",
-                            value = 40,
-                            style = WidgetStyle.CORNER_CIRCLE.name,
-                            color = WidgetColor.CORAL.label,
-                            bgPath = null
+                        repository.insert(
+                            Tracker(
+                                label = "Fitness Reps",
+                                value = 40,
+                                style = WidgetStyle.CORNER_CIRCLE.name,
+                                color = WidgetColor.CORAL.label,
+                                bgPath = null
+                            )
                         )
-                    )
+                    }
+                    prefs.edit().putBoolean("has_prepopulated_defaults", true).apply()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

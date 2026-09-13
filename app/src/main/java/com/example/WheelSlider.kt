@@ -88,7 +88,7 @@ fun WheelProgressSlider(
                                 val distance = Math.hypot(dx.toDouble(), dy.toDouble())
                                 val deadZonePx = 20.dp.toPx()
 
-                                if (distance > deadZonePx) {
+                                if (distance > deadZonePx || isDragging) {
                                     val currentAngleDegrees = Math.toDegrees(Math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
 
                                     if (change.pressed) {
@@ -127,17 +127,18 @@ fun WheelProgressSlider(
                                                 lastTick = tick
                                             }
                                         }
+                                        change.consume()
                                     } else {
                                         // Release contact
                                         isDragging = false
+                                        change.consume()
                                     }
                                 } else {
-                                    // Handle coordinate entering deadzone while held down
+                                    // In deadzone and not dragging: do not consume so outer scroll works
                                     if (!change.pressed) {
                                         isDragging = false
                                     }
                                 }
-                                change.consume()
                             }
                         }
                     }
