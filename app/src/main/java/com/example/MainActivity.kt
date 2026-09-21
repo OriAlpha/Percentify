@@ -140,7 +140,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
     var trackerToEdit by remember { mutableStateOf<Tracker?>(null) }
 
     // Dynamic Glance update triggering helper using compose coroutines
-    val triggerWidgetUpdate = { targetTracker: Tracker? ->
+    val triggerWidgetUpdate = { targetTracker: Tracker?, previousLabel: String? ->
         scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 if (targetTracker != null) {
@@ -150,9 +150,12 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                     glanceIds.forEach { glanceId ->
                         try {
                             val prefs = getAppWidgetState(appContext, PreferencesGlanceStateDefinition, glanceId)
-                            if (prefs[WidgetStateKeys.LABEL] == targetTracker.label) {
+                            val isMatch = prefs[WidgetStateKeys.LABEL] == targetTracker.label ||
+                                    (previousLabel != null && prefs[WidgetStateKeys.LABEL] == previousLabel)
+                            if (isMatch) {
                                 updateAppWidgetState(appContext, PreferencesGlanceStateDefinition, glanceId) { curPrefs ->
                                     curPrefs.toMutablePreferences().apply {
+                                        this[WidgetStateKeys.LABEL] = targetTracker.label
                                         this[WidgetStateKeys.VALUE] = targetTracker.value
                                         this[WidgetStateKeys.STYLE] = targetTracker.style
                                         this[WidgetStateKeys.COLOR] = targetTracker.color
@@ -301,14 +304,14 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                                         val updated = tracker.copy(value = nv)
                                         trackerViewModel.updateTrackerValue(tracker, nv)
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        triggerWidgetUpdate(updated)
+                                        triggerWidgetUpdate(updated, null)
                                     },
                                     onDecrement = {
                                         val nv = (tracker.value - 5).coerceIn(0, 100)
                                         val updated = tracker.copy(value = nv)
                                         trackerViewModel.updateTrackerValue(tracker, nv)
                                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        triggerWidgetUpdate(updated)
+                                        triggerWidgetUpdate(updated, null)
                                     }
                                 )
                             }
@@ -372,7 +375,7 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                 showAddDialog = false
                 Toast.makeText(context, "Goal added to dashboard!", Toast.LENGTH_SHORT).show()
                 val newTracker = Tracker(label = label, value = value, style = style.name, color = color.label, bgPath = bgPath)
-                triggerWidgetUpdate(newTracker)
+                triggerWidgetUpdate(newTracker, null)
             },
             onDelete = {}
         )
@@ -394,13 +397,13 @@ fun PercentifyDashboardScreen(modifier: Modifier = Modifier) {
                 trackerViewModel.updateTracker(updatedTracker)
                 trackerToEdit = null
                 Toast.makeText(context, "Goal settings updated!", Toast.LENGTH_SHORT).show()
-                triggerWidgetUpdate(updatedTracker)
+                triggerWidgetUpdate(updatedTracker, item.label)
             },
             onDelete = {
                 trackerViewModel.deleteTracker(item)
                 trackerToEdit = null
                 Toast.makeText(context, "Goal deleted", Toast.LENGTH_SHORT).show()
-                triggerWidgetUpdate(null)
+                triggerWidgetUpdate(null, null)
             }
         )
     }
@@ -599,9 +602,11 @@ fun TrackerLayoutPreview(
                     }
                 }
                 WidgetStyle.SOLID_FILL -> {
-                    val onColor = if (color == WidgetColor.AMBER) Color.Black else Color.White
-                    val subColor = if (color == WidgetColor.AMBER) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f)
-                    val ringBgColor = if (color == WidgetColor.AMBER) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.2f)
+                    val onColor = if (bgBitmap == null && color == WidgetColor.AMBER) Color.Black else Color.White
+                    val subColor = if (bgBitmap == null && color == WidgetColor.AMBER) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f)
+                    val arcColor = if (bgBitmap != null) Color(color.composeColor) else onColor
+                    val ringBgColor = if (bgBitmap != null) Color(color.composeColor).copy(alpha = 0.2f)
+                        else if (color == WidgetColor.AMBER) Color.Black.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.2f)
 
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -613,7 +618,7 @@ fun TrackerLayoutPreview(
                                 style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
                             )
                             drawArc(
-                                color = onColor,
+                                color = arcColor,
                                 startAngle = -90f,
                                 sweepAngle = (value / 100f) * 360f,
                                 useCenter = false,

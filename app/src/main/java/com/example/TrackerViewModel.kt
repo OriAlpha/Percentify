@@ -20,7 +20,7 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
     private fun getCupraBackgroundPath(context: Context): String? {
         return try {
             val file = java.io.File(context.filesDir, "bg_cupra.jpg")
-            if (!file.exists()) {
+            if (!file.exists() || file.length() == 0L) {
                 context.assets.open("bg_cupra.jpg").use { input ->
                     java.io.FileOutputStream(file).use { output ->
                         input.copyTo(output)
@@ -50,37 +50,8 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
             try {
                 val prefs = application.getSharedPreferences("percentify_prefs", Context.MODE_PRIVATE)
                 val cupraBgPath = getCupraBackgroundPath(application)
-                
-                // Migrate or set up default items
-                val hasCupraDefault = prefs.getBoolean("has_cupra_default_v2", false)
-                if (!hasCupraDefault) {
-                    val list = repository.allTrackers.first()
-                    val oldFitness = list.find { it.label == "Fitness Reps" }
-                    if (oldFitness != null) {
-                        repository.update(
-                            oldFitness.copy(
-                                label = "Cupra",
-                                value = 85,
-                                style = WidgetStyle.SOLID_FILL.name,
-                                color = WidgetColor.BRONZE.label,
-                                bgPath = cupraBgPath
-                            )
-                        )
-                    } else if (list.none { it.label == "Cupra" } && !prefs.getBoolean("has_prepopulated_defaults", false)) {
-                        repository.insert(
-                            Tracker(
-                                label = "Cupra",
-                                value = 85,
-                                style = WidgetStyle.SOLID_FILL.name,
-                                color = WidgetColor.BRONZE.label,
-                                bgPath = cupraBgPath
-                            )
-                        )
-                    }
-                    prefs.edit().putBoolean("has_cupra_default_v2", true).apply()
-                }
-
                 val hasPrepopulated = prefs.getBoolean("has_prepopulated_defaults", false)
+
                 if (!hasPrepopulated) {
                     val list = repository.allTrackers.first()
                     if (list.isEmpty()) {
@@ -103,7 +74,39 @@ class TrackerViewModel(application: Application) : AndroidViewModel(application)
                             )
                         )
                     }
-                    prefs.edit().putBoolean("has_prepopulated_defaults", true).apply()
+                    prefs.edit()
+                        .putBoolean("has_prepopulated_defaults", true)
+                        .putBoolean("has_cupra_default_v2", true)
+                        .apply()
+                } else {
+                    // Migrate existing users to Cupra default if not yet migrated
+                    val hasCupraDefault = prefs.getBoolean("has_cupra_default_v2", false)
+                    if (!hasCupraDefault) {
+                        val list = repository.allTrackers.first()
+                        val oldFitness = list.find { it.label == "Fitness Reps" }
+                        if (oldFitness != null) {
+                            repository.update(
+                                oldFitness.copy(
+                                    label = "Cupra",
+                                    value = 85,
+                                    style = WidgetStyle.SOLID_FILL.name,
+                                    color = WidgetColor.BRONZE.label,
+                                    bgPath = cupraBgPath
+                                )
+                            )
+                        } else if (list.none { it.label == "Cupra" }) {
+                            repository.insert(
+                                Tracker(
+                                    label = "Cupra",
+                                    value = 85,
+                                    style = WidgetStyle.SOLID_FILL.name,
+                                    color = WidgetColor.BRONZE.label,
+                                    bgPath = cupraBgPath
+                                )
+                            )
+                        }
+                        prefs.edit().putBoolean("has_cupra_default_v2", true).apply()
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
