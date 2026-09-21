@@ -241,6 +241,18 @@ fun EditWidgetDialogScreen(
 
     // Material 3 Dialog styled overlay
     val interactionSource = remember { MutableInteractionSource() }
+
+    // Save and commit immediately on system back button or gesture
+    androidx.activity.compose.BackHandler {
+        onSaved(
+            labelState.ifBlank { "Progress" },
+            valueState.toInt(),
+            styleState,
+            colorState,
+            bgPathState
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -248,7 +260,15 @@ fun EditWidgetDialogScreen(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
-            ) { onDismiss() } // Tap outside dismissal
+            ) {
+                onSaved(
+                    labelState.ifBlank { "Progress" },
+                    valueState.toInt(),
+                    styleState,
+                    colorState,
+                    bgPathState
+                )
+            } // Tap outside dismissal with save
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {

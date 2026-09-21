@@ -75,72 +75,76 @@ fun WheelProgressSlider(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     var lastAngle = 0f
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val change = event.changes.firstOrNull()
-                            if (change != null) {
-                                val cx = size.width / 2f
-                                val cy = size.height / 2f
-                                val pos = change.position
-                                val dx = pos.x - cx
-                                val dy = pos.y - cy
-                                val distance = Math.hypot(dx.toDouble(), dy.toDouble())
-                                val deadZonePx = 20.dp.toPx()
+                    try {
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull()
+                                if (change != null) {
+                                    val cx = size.width / 2f
+                                    val cy = size.height / 2f
+                                    val pos = change.position
+                                    val dx = pos.x - cx
+                                    val dy = pos.y - cy
+                                    val distance = Math.hypot(dx.toDouble(), dy.toDouble())
+                                    val deadZonePx = 20.dp.toPx()
 
-                                if (distance > deadZonePx || isDragging) {
-                                    val currentAngleDegrees = Math.toDegrees(Math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
+                                    if (distance > deadZonePx || isDragging) {
+                                        val currentAngleDegrees = Math.toDegrees(Math.atan2(dy.toDouble(), dx.toDouble())).toFloat()
 
-                                    if (change.pressed) {
-                                        if (!change.previousPressed || !isDragging) {
-                                            // Gesture Started: snap to initial touch and establish absolute tracking source
-                                            isDragging = true
-                                            lastAngle = currentAngleDegrees
-                                            val normalizedAngle = (currentAngleDegrees + 90f + 360f) % 360f
-                                            val pct = (normalizedAngle / 360f) * 100f
-                                            val finalPct = pct.coerceIn(0f, 100f)
-                                            currentOnValueChange(finalPct)
+                                        if (change.pressed) {
+                                            if (!change.previousPressed || !isDragging) {
+                                                // Gesture Started: snap to initial touch and establish absolute tracking source
+                                                isDragging = true
+                                                lastAngle = currentAngleDegrees
+                                                val normalizedAngle = (currentAngleDegrees + 90f + 360f) % 360f
+                                                val pct = (normalizedAngle / 360f) * 100f
+                                                val finalPct = pct.coerceIn(0f, 100f)
+                                                currentOnValueChange(finalPct)
 
-                                            // Fire click on snap
-                                            val tick = ((finalPct / 100f) * 36f).toInt()
-                                            if (tick != lastTick) {
-                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                lastTick = tick
+                                                // Fire click on snap
+                                                val tick = ((finalPct / 100f) * 36f).toInt()
+                                                if (tick != lastTick) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    lastTick = tick
+                                                }
+                                            } else {
+                                                // Actively dragging: perform seamless relative rotational scaling
+                                                var delta = currentAngleDegrees - lastAngle
+                                                if (delta > 180f) delta -= 360f
+                                                else if (delta < -180f) delta += 360f
+
+                                                // 1.15f is optimized rotation speed for hand-eye drag coordination
+                                                val sensitivity = 1.15f
+                                                val deltaPct = (delta / 360f) * 100f * sensitivity
+                                                val finalPct = (currentValue + deltaPct).coerceIn(0f, 100f)
+                                                currentOnValueChange(finalPct)
+                                                lastAngle = currentAngleDegrees
+
+                                                // Fire discrete click tactile feeling on each visual tick item transition
+                                                val tick = ((finalPct / 100f) * 36f).toInt()
+                                                if (tick != lastTick) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    lastTick = tick
+                                                }
                                             }
+                                            change.consume()
                                         } else {
-                                            // Actively dragging: perform seamless relative rotational scaling
-                                            var delta = currentAngleDegrees - lastAngle
-                                            if (delta > 180f) delta -= 360f
-                                            else if (delta < -180f) delta += 360f
-
-                                            // 1.15f is optimized rotation speed for hand-eye drag coordination
-                                            val sensitivity = 1.15f
-                                            val deltaPct = (delta / 360f) * 100f * sensitivity
-                                            val finalPct = (currentValue + deltaPct).coerceIn(0f, 100f)
-                                            currentOnValueChange(finalPct)
-                                            lastAngle = currentAngleDegrees
-
-                                            // Fire discrete click tactile feeling on each visual tick item transition
-                                            val tick = ((finalPct / 100f) * 36f).toInt()
-                                            if (tick != lastTick) {
-                                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                lastTick = tick
-                                            }
+                                            // Release contact
+                                            isDragging = false
+                                            change.consume()
                                         }
-                                        change.consume()
                                     } else {
-                                        // Release contact
-                                        isDragging = false
-                                        change.consume()
-                                    }
-                                } else {
-                                    // In deadzone and not dragging: do not consume so outer scroll works
-                                    if (!change.pressed) {
-                                        isDragging = false
+                                        // In deadzone and not dragging: do not consume so outer scroll works
+                                        if (!change.pressed) {
+                                            isDragging = false
+                                        }
                                     }
                                 }
                             }
                         }
+                    } finally {
+                        isDragging = false
                     }
                 }
         ) {

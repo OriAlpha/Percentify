@@ -271,19 +271,20 @@ fun WidgetContent(
                 }
             }
             WidgetStyle.SOLID_FILL -> {
-                val onColor = if (widgetColor == WidgetColor.AMBER) Color.Black else Color.White
-                val subColor = if (widgetColor == WidgetColor.AMBER) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f)
-                
+                val onColor = if (bgBitmap == null && widgetColor == WidgetColor.AMBER) Color.Black else Color.White
+                val subColor = if (bgBitmap == null && widgetColor == WidgetColor.AMBER) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f)
+                val isBgOnColor = bgBitmap == null
+
                 Box(
                     modifier = GlanceModifier.fillMaxSize(),
                     contentAlignment = Alignment.BottomEnd
                 ) {
-                    val circleBitmap = remember(value, widgetColor) {
+                    val circleBitmap = remember(value, widgetColor, isBgOnColor) {
                         WidgetBitmapRenderer.drawStandaloneCircle(
                             percentage = value,
                             hexColor = widgetColor.hex,
                             size = 110,
-                            isBgOnColor = true
+                            isBgOnColor = isBgOnColor
                         )
                     }
                     Image(
